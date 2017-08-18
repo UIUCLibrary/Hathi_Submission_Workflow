@@ -1,8 +1,8 @@
 from setuptools import setup
 import os
-import hathi_submission_workflow
+import hsw
 
-metadata_file = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'hathi_submission_workflow', '__version__.py')
+metadata_file = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'hsw', '__version__.py')
 metadata = dict()
 with open(metadata_file, 'r', encoding='utf-8') as f:
     exec(f.read(), metadata)
@@ -13,7 +13,7 @@ with open('README.rst', 'r', encoding='utf-8') as readme_file:
 setup(
     name=metadata["__title__"],
     version=metadata["__version__"],
-    packages=['hathi_submission_workflow'],
+    packages=['hsw'],
     url=metadata["__url__"],
     license='University of Illinois/NCSA Open Source License',
     author=metadata["__author__"],
@@ -26,7 +26,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
          "console_scripts": [
-             'hathi_submission_workflow = hathi_submission_workflow.__main__:main'
+             'hsw = hsw.__main__:main'
          ]
      },
 )
