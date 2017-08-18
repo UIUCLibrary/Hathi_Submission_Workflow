@@ -1,6 +1,6 @@
 import sys
 
-from hathi_submission_workflow import cli
+from hsw import cli
 
 
 def main():
