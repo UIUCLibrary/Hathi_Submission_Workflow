@@ -1,0 +1,10 @@
+mypy
+cx_Freeze
+wheel
+sphinx
+pytest
+pytest-runner
+six
+appdirs
+packaging
+tox
