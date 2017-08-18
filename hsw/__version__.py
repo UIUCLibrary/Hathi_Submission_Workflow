@@ -1,4 +1,4 @@
-__title__ = 'hathi_submission_workflow'
+__title__ = 'hsw'
 __version__ = '0.0.1'
 __url__ = 'http://http://www.library.illinois.edu/dccdocs/hathi_submission_workflow'
 __author__ = 'University of Illinois at Urbana Champaign'
