@@ -8,3 +8,4 @@ six
 appdirs
 packaging
 tox
+pyqt5

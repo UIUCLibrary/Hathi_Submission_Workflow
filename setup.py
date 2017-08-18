@@ -19,7 +19,7 @@ setup(
     author=metadata["__author__"],
     author_email=metadata["__author_email__"],
     description=metadata["__description__"],
-    install_requires=["PyQt5"],
+    install_requires=["pyqt5"],
     long_description=readme,
     test_suite="tests",
     setup_requires=['pytest-runner'],
