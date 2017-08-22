@@ -42,9 +42,9 @@ def test_set_and_retrieve_entry(packages):
 
 
 def test_alert_dup_added(packages):
-    packages.add_package(path="c://temp/foo")
+    packages.add_package(path="c:/temp/foo")
     with pytest.raises(FileExistsError):
-        packages.add_package(path="c://temp/foo")
+        packages.add_package(path="c:/temp/foo")
 
 
 def test_package_size(sample_package):
