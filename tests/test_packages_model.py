@@ -49,3 +49,11 @@ def test_alert_dup_added(packages):
 
 def test_package_size(sample_package):
     assert len(sample_package) == 0
+
+
+def test_package_with_one_item(sample_package_with_items):
+    assert len(sample_package_with_items) == 1
+
+
+def test_package_with_item_with_metadata(sample_package_with_items):
+    assert "title_page" in sample_package_with_items.metadata
