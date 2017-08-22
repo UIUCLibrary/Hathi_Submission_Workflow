@@ -1,6 +1,6 @@
 import sys
 
-from hsw import cli
+from hsw import gui
 
 
 def main():
@@ -8,7 +8,7 @@ def main():
         import pytest  # type: ignore
         sys.exit(pytest.main(sys.argv[2:]))
     else:
-        cli.main()
+        gui.main()
 
 
 if __name__ == '__main__':

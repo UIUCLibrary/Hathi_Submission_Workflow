@@ -42,10 +42,18 @@ def test_set_and_retrieve_entry(packages):
 
 
 def test_alert_dup_added(packages):
-    packages.add_package(path="c://temp/foo")
+    packages.add_package(path="c:/temp/foo")
     with pytest.raises(FileExistsError):
-        packages.add_package(path="c://temp/foo")
+        packages.add_package(path="c:/temp/foo")
 
 
 def test_package_size(sample_package):
     assert len(sample_package) == 0
+
+
+def test_package_with_one_item(sample_package_with_items):
+    assert len(sample_package_with_items) == 1
+
+
+def test_package_with_item_with_metadata(sample_package_with_items):
+    assert "title_page" in sample_package_with_items.metadata
