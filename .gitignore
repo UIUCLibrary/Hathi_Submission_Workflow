@@ -153,3 +153,4 @@ ENV/
 .ropeproject
 
 /.mypy_cache/
+/hsw/ui_packages.py
