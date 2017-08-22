@@ -42,7 +42,7 @@ pipeline {
                                 junit 'reports/junit-*.xml'
 
                             }
-                        },
+                        }
                         // "Linux": {
                         //     node(label: "!Windows") {
                         //         deleteDir()
