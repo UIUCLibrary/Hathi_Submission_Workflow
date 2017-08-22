@@ -6,4 +6,4 @@ __author_email__ = 'hborcher@illinois.edu'
 __description__ = "Application to make submitting content to Hathi Trust easier."
 FULL_TITLE = "Hathi Submission Workflow"
 MAINTAINER = 'Henry Borchers'
-MAINTAINER_EMAIL =  'hborcher@illinois.edu'
+MAINTAINER_EMAIL = 'hborcher@illinois.edu'
