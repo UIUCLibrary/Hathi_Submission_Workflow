@@ -13,7 +13,7 @@ with open('README.rst', 'r', encoding='utf-8') as readme_file:
 setup(
     name=metadata["__title__"],
     version=metadata["__version__"],
-    packages=['hsw'],
+    packages=['hsw', "hsw.ui"],
     url=metadata["__url__"],
     license='University of Illinois/NCSA Open Source License',
     author=metadata["__author__"],
