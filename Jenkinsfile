@@ -43,16 +43,16 @@ pipeline {
 
                             }
                         },
-                        "Linux": {
-                            node(label: "!Windows") {
-                                deleteDir()
-                                unstash "Source"
-                                withEnv(["PATH=${env.PYTHON3}/..:${env.PATH}"]) {
-                                    sh "${env.TOX}  -e pytest"
-                                }
-                                junit 'reports/junit-*.xml'
-                            }
-                        }
+                        // "Linux": {
+                        //     node(label: "!Windows") {
+                        //         deleteDir()
+                        //         unstash "Source"
+                        //         withEnv(["PATH=${env.PYTHON3}/..:${env.PATH}"]) {
+                        //             sh "${env.TOX}  -e pytest"
+                        //         }
+                        //         junit 'reports/junit-*.xml'
+                        //     }
+                        // }
                 )
             }
         }
