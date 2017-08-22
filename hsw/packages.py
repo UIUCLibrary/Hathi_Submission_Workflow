@@ -1,28 +1,24 @@
 from collections import abc
 
 
-# TODO: make into an abc.Set with metadata because MutableMapping doesn't really makes sense for this .
-# https://docs.python.org/3.6/library/collections.abc.html#collections-abstract-base-classes
-class Package(abc.MutableMapping):
+class Package(abc.Collection):
     def __init__(self, path):
-        self._data = dict()
+        self.metadata = dict()
+        self._items = []
         self.path = path
 
     def __len__(self):
-        return len(self._data)
+        return len(self._items)
+
+    def __contains__(self, x):
+        for name in self._items:
+            if name == x:
+                return True
+        else:
+            return False
 
     def __iter__(self):
-        # TODO: Make package size the number of items, not the amount of metadata it has
-        return self._data.__iter__()
-
-    def __delitem__(self, key):
-        del self._data[key]
-
-    def __getitem__(self, key):
-        return self._data[key]
-
-    def __setitem__(self, key, value):
-        self._data[key] = value
+        return self._items.__iter__()
 
 
 class Packages(abc.Mapping):
@@ -46,6 +42,5 @@ class Packages(abc.Mapping):
     @staticmethod
     def _build_package(path):
         new_package = Package(path)
-        new_package["pages"] = []
-        new_package["title_page"] = None
+        new_package.metadata["title_page"] = None
         return new_package

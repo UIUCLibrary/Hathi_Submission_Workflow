@@ -42,17 +42,17 @@ pipeline {
                                 junit 'reports/junit-*.xml'
 
                             }
-                        },
-                        "Linux": {
-                            node(label: "!Windows") {
-                                deleteDir()
-                                unstash "Source"
-                                withEnv(["PATH=${env.PYTHON3}/..:${env.PATH}"]) {
-                                    sh "${env.TOX}  -e pytest"
-                                }
-                                junit 'reports/junit-*.xml'
-                            }
                         }
+                        // "Linux": {
+                        //     node(label: "!Windows") {
+                        //         deleteDir()
+                        //         unstash "Source"
+                        //         withEnv(["PATH=${env.PYTHON3}/..:${env.PATH}"]) {
+                        //             sh "${env.TOX}  -e pytest"
+                        //         }
+                        //         junit 'reports/junit-*.xml'
+                        //     }
+                        // }
                 )
             }
         }
@@ -95,14 +95,6 @@ pipeline {
 
                         }
                 )
-            }
-            post {
-              success {
-                deleteDir()
-                unstash "HTML Documentation"
-                sh 'tar -czvf sphinx_html_docs.tar.gz -C html .'
-                archiveArtifacts artifacts: 'sphinx_html_docs.tar.gz'
-              }
             }
         }
 
