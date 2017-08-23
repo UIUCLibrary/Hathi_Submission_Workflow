@@ -27,9 +27,7 @@ class AbsPackageBuilder(metaclass=abc.ABCMeta):
 class PackageBuilder(AbsPackageBuilder):
     @staticmethod
     def set_default_metadata(package: Package):
-        # TODO: set_default_metadata
-        pass
-        # super().set_default_metadata(self, package)
+        package.metadata = {"title_page": None}
 
     def add_items(self, package: Package):
         if self.path:
@@ -41,4 +39,3 @@ class PackageBuilder(AbsPackageBuilder):
         self.add_items(new_package)
         PackageBuilder.set_default_metadata(new_package)
         return new_package
-
