@@ -21,9 +21,11 @@ class Package(abc.Collection):
         return self._items.__iter__()
 
 
+# TODO Make this a seqyebce instead of a mapping
 class Packages(abc.Mapping):
-    def __init__(self):
+    def __init__(self, root=None):
         self._data = dict()
+        self.root = root
 
     def __len__(self):
         return len(self._data)
@@ -44,3 +46,20 @@ class Packages(abc.Mapping):
         new_package = Package(path)
         new_package.metadata["title_page"] = None
         return new_package
+
+
+class PackagesList(abc.Sequence):
+    def __init__(self, root=None):
+        self._packages = []
+        self.root = root
+
+    def __len__(self):
+        return len(self._packages)
+
+    def __iter__(self):
+        return self._packages.__iter__()
+
+    # def add_package(self, path):
+    #     if path in self._packages:
+    #         raise FileExistsError("{} already in packages".format(path))
+    #     self._data[path] = self._build_package(path)
