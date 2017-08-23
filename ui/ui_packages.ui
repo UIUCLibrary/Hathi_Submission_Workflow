@@ -3,7 +3,7 @@
  <class>PackagesDialog</class>
  <widget class="QDialog" name="PackagesDialog">
   <property name="windowModality">
-   <enum>Qt::WindowModal</enum>
+   <enum>Qt::NonModal</enum>
   </property>
   <property name="geometry">
    <rect>
