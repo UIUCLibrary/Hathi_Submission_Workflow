@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget
 from .ui_packages import Ui_PackagesDialog
-from .packagesModel import PackageModel
+from .packages_model import PackageModel
 from hsw.package_list import PackagesList
 
 class PackageBrowser(QWidget, Ui_PackagesDialog):
