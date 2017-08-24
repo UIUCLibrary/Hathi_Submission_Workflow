@@ -4,7 +4,7 @@ from hsw.packages import Package
 from collections import namedtuple
 from collections import abc
 
-HeaderMap = namedtuple("HeaderMap", ("column_header", "data_entry"))
+HeaderMap = namedtuple("HeaderMap", ("column_header", "data_entry", "editable"))
 
 
 class NameAdapter(abc.Sized):
@@ -37,8 +37,8 @@ class NameAdapter(abc.Sized):
 class PackageModel(QAbstractTableModel):
 
     public_headers = {
-        0: HeaderMap(column_header="Package", data_entry="package_name"),
-        1: HeaderMap(column_header="Title Page", data_entry="title_page")
+        0: HeaderMap(column_header="Package", data_entry="package_name", editable=False),
+        1: HeaderMap(column_header="Title Page", data_entry="title_page", editable=True),
     }
 
     def __init__(self, packages: PackagesList) -> None:
@@ -63,6 +63,13 @@ class PackageModel(QAbstractTableModel):
                 return ""
         super().headerData(index, orientation, role)
 
+    def setData(self, index, data, role=None):
+        if role == Qt.EditRole:
+            mapping = PackageModel.public_headers[index.column()]
+            if mapping.editable:
+                self._packages[index.row()].metadata[mapping.data_entry] = data
+        return super().setData(index, data, role)
+
     def data(self, index, role=None):
         row = index.row()
         column = index.column()
@@ -73,7 +80,7 @@ class PackageModel(QAbstractTableModel):
                 data = self._get_data(row, header_name)
                 return data
             except KeyError as e:
-                print("ERROR: {}".format(e))
+                print("ERROR finding data for key: {}".format(e))
                 return ""
 
         return QVariant()
@@ -85,3 +92,10 @@ class PackageModel(QAbstractTableModel):
             data = "Invalid metadata {}".format(e)
 
         return data
+
+    def flags(self, index):
+        column = index.column()
+        if PackageModel.public_headers[column].editable:
+            return Qt.ItemIsEditable | Qt.ItemIsEnabled
+        return super().flags(index)
+
