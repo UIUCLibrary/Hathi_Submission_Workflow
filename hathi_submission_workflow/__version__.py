@@ -1,9 +1,0 @@
-__title__ = 'hathi_submission_workflow'
-__version__ = '0.0.1'
-__url__ = 'http://http://www.library.illinois.edu/dccdocs/hathi_submission_workflow'
-__author__ = 'University of Illinois at Urbana Champaign'
-__author_email__ = 'hborcher@illinois.edu'
-__description__ = "Application to make submitting content to Hathi Trust easier."
-FULL_TITLE = "Hathi Submission Workflow"
-MAINTAINER = 'Henry Borchers'
-MAINTAINER_EMAIL =  'hborcher@illinois.edu'
