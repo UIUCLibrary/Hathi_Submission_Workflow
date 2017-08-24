@@ -1,6 +1,7 @@
 import warnings
 from collections import abc
 
+
 class Package(abc.Collection):
     def __init__(self, path):
         self.metadata = dict()
@@ -46,5 +47,3 @@ class Packages(abc.Mapping):
         new_package = Package(path)
         new_package.metadata["title_page"] = None
         return new_package
-
-
