@@ -1,1 +1,1 @@
-from .packageBrowser import PackageBroswer
+from .package_browser import PackageBrowser

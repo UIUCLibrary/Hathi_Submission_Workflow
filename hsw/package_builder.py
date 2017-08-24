@@ -2,7 +2,7 @@ import abc
 
 import os
 
-from .packages import Package
+from hsw.packages import Package
 
 
 class AbsPackageBuilder(metaclass=abc.ABCMeta):
@@ -27,9 +27,10 @@ class AbsPackageBuilder(metaclass=abc.ABCMeta):
 class PackageBuilder(AbsPackageBuilder):
     @staticmethod
     def set_default_metadata(package: Package):
-        # TODO: set_default_metadata
-        pass
-        # super().set_default_metadata(self, package)
+        package.metadata = {
+            "package_name": None,
+            "title_page": None
+        }
 
     def add_items(self, package: Package):
         if self.path:
@@ -38,7 +39,13 @@ class PackageBuilder(AbsPackageBuilder):
 
     def build(self) -> Package:
         new_package = Package(self.path)
-        self.add_items(new_package)
         PackageBuilder.set_default_metadata(new_package)
+        if self.path:
+            package_name = self.get_package_name(self.path)
+            new_package.metadata["package_name"] = package_name
+        self.add_items(new_package)
         return new_package
 
+    @staticmethod
+    def get_package_name(path):
+        return os.path.split(path)[-1]

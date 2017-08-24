@@ -1,3 +1,4 @@
+import warnings
 from collections import abc
 
 
@@ -22,8 +23,10 @@ class Package(abc.Collection):
 
 
 class Packages(abc.Mapping):
-    def __init__(self):
+    def __init__(self, root=None):
+        warnings.warn("Use PackageList instead", DeprecationWarning)
         self._data = dict()
+        self.root = root
 
     def __len__(self):
         return len(self._data)

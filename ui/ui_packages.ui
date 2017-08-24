@@ -3,7 +3,7 @@
  <class>PackagesDialog</class>
  <widget class="QDialog" name="PackagesDialog">
   <property name="windowModality">
-   <enum>Qt::WindowModal</enum>
+   <enum>Qt::NonModal</enum>
   </property>
   <property name="geometry">
    <rect>
@@ -36,7 +36,11 @@
     <number>5</number>
    </property>
    <item>
-    <widget class="QTreeView" name="packageView"/>
+    <widget class="QTreeView" name="packageView">
+     <property name="selectionBehavior">
+      <enum>QAbstractItemView::SelectItems</enum>
+     </property>
+    </widget>
    </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
