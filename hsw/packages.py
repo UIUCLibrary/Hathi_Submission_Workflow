@@ -1,5 +1,5 @@
+import warnings
 from collections import abc
-
 
 class Package(abc.Collection):
     def __init__(self, path):
@@ -21,9 +21,9 @@ class Package(abc.Collection):
         return self._items.__iter__()
 
 
-# TODO Make this a seqyebce instead of a mapping
 class Packages(abc.Mapping):
     def __init__(self, root=None):
+        warnings.warn("Use PackageList instead", DeprecationWarning)
         self._data = dict()
         self.root = root
 
@@ -48,18 +48,3 @@ class Packages(abc.Mapping):
         return new_package
 
 
-class PackagesList(abc.Sequence):
-    def __init__(self, root=None):
-        self._packages = []
-        self.root = root
-
-    def __len__(self):
-        return len(self._packages)
-
-    def __iter__(self):
-        return self._packages.__iter__()
-
-    # def add_package(self, path):
-    #     if path in self._packages:
-    #         raise FileExistsError("{} already in packages".format(path))
-    #     self._data[path] = self._build_package(path)
