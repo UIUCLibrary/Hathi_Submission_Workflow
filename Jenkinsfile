@@ -25,6 +25,8 @@ pipeline {
                 checkout scm
                 sh """${env.PYTHON3} -m venv .env
                 source .env/bin/activate
+                pip install --upgrade pip
+                pip install pyqt5
                 make
                 deactivate
                 rm -r .env
