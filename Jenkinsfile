@@ -23,6 +23,12 @@ pipeline {
             steps {
                 deleteDir()
                 checkout scm
+                sh """${env.PYTHON3} -m venv .env
+                source .env/bin/activate
+                make
+                deactivate
+                rm -r .env
+                """
                 stash includes: '**', name: "Source", useDefaultExcludes: false
                 stash includes: 'deployment.yml', name: "Deployment"
             }
@@ -34,15 +40,28 @@ pipeline {
             }
             steps {
                 parallel(
-                        "Windows": {
-                            node(label: 'Windows') {
-                                deleteDir()
-                                unstash "Source"
-                                bat "${env.TOX}  -e pytest"
-                                junit 'reports/junit-*.xml'
-
+                  "Windows": {
+                            script {
+                                def runner = new Tox(this)
+                                runner.env = "pytest"
+                                runner.windows = true
+                                runner.stash = "Source"
+                                runner.label = "Windows"
+                                runner.post = {
+                                    junit 'reports/junit-*.xml'
+                                }
+                                runner.run()
                             }
                         }
+                        // "Windows": {
+                        //     node(label: 'Windows') {
+                        //         deleteDir()
+                        //         unstash "Source"
+                        //         bat "${env.TOX}  -e pytest"
+                        //         junit 'reports/junit-*.xml'
+                        //
+                        //     }
+                        // }
                         // "Linux": {
                         //     node(label: "!Windows") {
                         //         deleteDir()
