@@ -1,6 +1,17 @@
 from setuptools import setup
+from setuptools.command import build_py
 import os
 import hsw
+
+
+class BuildPyCommand(build_py.build_py):
+    def run(self):
+        from PyQt5 import uic
+        print("Building Gui")
+        building_path = os.path.dirname(os.path.realpath(__file__))
+        with open(os.path.join(building_path, "hsw", "ui", "ui_packages.py"), "w") as ui_writer:
+            uic.compileUi(uifile=os.path.join(building_path, "ui", "ui_packages.ui"), pyfile=ui_writer)
+
 
 metadata_file = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'hsw', '__version__.py')
 metadata = dict()
@@ -22,11 +33,14 @@ setup(
     install_requires=["pyqt5"],
     long_description=readme,
     test_suite="tests",
-    setup_requires=['pytest-runner'],
+    setup_requires=['pytest-runner', "pyqt5"],
+    cmdclass={
+        "build_py": BuildPyCommand
+    },
     tests_require=['pytest'],
     entry_points={
-         "console_scripts": [
-             'hsw = hsw.__main__:main'
-         ]
-     },
+        "console_scripts": [
+            'hsw = hsw.__main__:main'
+        ]
+    },
 )
