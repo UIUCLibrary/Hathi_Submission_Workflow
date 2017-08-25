@@ -14,8 +14,15 @@ EXIT /B 0
 goto :eof
 if
 :gui
+setlocal
     echo Converting Qt .ui files into Python files
-    pyuic5 ui\ui_packages.ui -o hsw\ui\ui_packages.py
+    for %%f in (
+     ui/*.ui ) do (
+        echo  %%~nf
+        pyuic5 ui\%%f -o hsw\ui\%%~nf.py
+
+    )
+endlocal
 goto :eof
 
 :install-dev
