@@ -23,14 +23,6 @@ pipeline {
             steps {
                 deleteDir()
                 checkout scm
-                sh """${env.PYTHON3} -m venv .env
-                source .env/bin/activate
-                pip install --upgrade pip
-                pip install pyqt5
-                make
-                deactivate
-                rm -r .env
-                """
                 stash includes: '**', name: "Source", useDefaultExcludes: false
                 stash includes: 'deployment.yml', name: "Deployment"
             }
