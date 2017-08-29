@@ -35,7 +35,10 @@ setup(
     install_requires=["pyqt5"],
     long_description=readme,
     test_suite="tests",
-    setup_requires=['pytest-runner', "pyqt5"],
+    setup_requires=[
+        "pytest-runner",
+        "pyqt5"
+    ],
     cmdclass={
         "build": BuildPyCommand
     },
