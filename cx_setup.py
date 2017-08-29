@@ -93,8 +93,7 @@ cx_Freeze.setup(
     options={
         "build_exe": build_exe_options,
         "bdist_msi": {
-			# TODO: Fill in upgrade_code. example: {D8846842-2CF4-4F9A-8A2A-FFAFD8A5E10B}
-            # "upgrade_code": "",
+            "upgrade_code": "{1F20F6AD-58C2-45D6-B908-E8060D0059BD}",
             "data": {
                 "Shortcut": shortcut_table,
                 "Directory": directory_table
