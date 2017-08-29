@@ -18,9 +18,7 @@ pipeline {
     stages {
 
         stage("Cloning Source") {
-            agent {
-                label "windows"
-            }
+            agent any
 
             steps {
                 deleteDir()
@@ -32,7 +30,9 @@ pipeline {
 
         }
         stage("Build"){
-            agent "windows"
+            agent {
+                label "windows"
+            }
             steps{
                 virtualenv python_path: env.PYTHON3, requirements_file: "requirements.txt", windows: true, "python --version"
             }
