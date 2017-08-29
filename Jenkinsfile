@@ -18,7 +18,9 @@ pipeline {
     stages {
 
         stage("Cloning Source") {
-            agent any
+            agent {
+                label "windows"
+            }
 
             steps {
                 deleteDir()
