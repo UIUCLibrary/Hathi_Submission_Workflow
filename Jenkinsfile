@@ -31,7 +31,7 @@ pipeline {
         }
         stage("Build"){
             agent {
-                label "windows"
+                label "Windows"
             }
             steps{
                 virtualenv python_path: env.PYTHON3, requirements_file: "requirements.txt", windows: true, "python --version"
