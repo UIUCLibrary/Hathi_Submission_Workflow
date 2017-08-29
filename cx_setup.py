@@ -83,7 +83,7 @@ build_exe_options = {
 
 }
 
-target_name = 'hathi_submission_workflow.exe' if platform.system() == "Windows" else 'hathi_submission_workflow'
+target_name = 'hsw.exe' if platform.system() == "Windows" else 'hsw'
 cx_Freeze.setup(
     name=metadata["FULL_TITLE"],
     description=metadata["__description__"],
