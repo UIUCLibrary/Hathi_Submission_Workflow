@@ -23,12 +23,17 @@ pipeline {
             steps {
                 deleteDir()
                 checkout scm
-                virtualenv python_path: env.PYTHON3, requirements_file: "requirements.txt", "python --version"
                 stash includes: '**', name: "Source", useDefaultExcludes: false
 
                 stash includes: 'deployment.yml', name: "Deployment"
             }
 
+        }
+        stage("Build"){
+            agent "windows"
+            steps{
+                virtualenv python_path: env.PYTHON3, requirements_file: "requirements.txt", windows: true, "python --version"
+            }
         }
         stage("Unit tests") {
             when {
