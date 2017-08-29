@@ -148,7 +148,7 @@ pipeline {
                                        python cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir build/msi
                                        call .env/Scripts/deactivate.bat
                                     """
-                                bat "build\\msi\\hathi_submission_workflow.exe --pytest"
+                                bat "build\\msi\\hsw.exe --pytest"
                                 dir("dist") {
                                     stash includes: "*.msi", name: "msi"
                                 }
