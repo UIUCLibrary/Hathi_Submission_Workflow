@@ -102,7 +102,7 @@ cx_Freeze.setup(
 
         }
     },
-    executables=[cx_Freeze.Executable("hathi_submission_workflow/__main__.py",
+    executables=[cx_Freeze.Executable("hsw/__main__.py",
                             targetName=target_name, base="Console")],
 
 )
