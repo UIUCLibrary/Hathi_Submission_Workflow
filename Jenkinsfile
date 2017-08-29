@@ -1,7 +1,5 @@
-#!groovy
 @Library("ds-utils")
 import org.ds.*
-
 pipeline {
     agent any
     environment {
@@ -24,9 +22,9 @@ pipeline {
 
             steps {
                 deleteDir()
-                checkout scmz
-                stash includes: '**', name: "Source", useDefaultExcludes: false
+                checkout scm
                 virtualenv python_path: $ { env.PYTHON3 }, requirements_file: "requirements.txt", "python --version"
+                stash includes: '**', name: "Source", useDefaultExcludes: false
 
                 stash includes: 'deployment.yml', name: "Deployment"
             }
@@ -38,7 +36,7 @@ pipeline {
             }
             steps {
                 parallel(
-                        "Windows": {
+                  "Windows": {
                             script {
                                 def runner = new Tox(this)
                                 runner.env = "pytest"
@@ -187,9 +185,9 @@ pipeline {
 
             post {
                 success {
-                    script {
+                    script{
                         unstash "Source"
-                        def deployment_request = requestDeploy this, "deployment.yml"
+                        def  deployment_request = requestDeploy this, "deployment.yml"
                         echo deployment_request
                         writeFile file: "deployment_request.txt", text: deployment_request
                         archiveArtifacts artifacts: "deployment_request.txt"
@@ -200,7 +198,7 @@ pipeline {
         stage("Update online documentation") {
             agent any
             when {
-                expression { params.UPDATE_DOCS == true }
+              expression {params.UPDATE_DOCS == true }
             }
 
             steps {
