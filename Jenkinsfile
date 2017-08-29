@@ -34,7 +34,7 @@ pipeline {
                 label "Windows"
             }
             steps{
-                virtualenv python_path: env.PYTHON3, requirements_file: "requirements.txt", windows: true, "dir"
+                virtualenv python_path: env.PYTHON3, requirements_file: "requirements.txt", windows: true, "copy NUL > delme.txt"
                 bat "dir"
             }
         }
