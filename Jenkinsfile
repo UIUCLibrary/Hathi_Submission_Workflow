@@ -1,3 +1,4 @@
+#!groovy
 @Library("ds-utils")
 import org.ds.*
 pipeline {
