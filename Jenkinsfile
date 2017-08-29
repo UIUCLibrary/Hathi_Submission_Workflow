@@ -35,6 +35,7 @@ pipeline {
             }
             steps{
                 virtualenv python_path: env.PYTHON3, requirements_file: "requirements.txt", windows: true, "dir"
+                bat "dir"
             }
         }
         stage("Unit tests") {
