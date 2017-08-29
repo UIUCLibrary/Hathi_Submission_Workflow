@@ -20,12 +20,14 @@ pipeline {
     stages {
 
         stage("Cloning and Generating Source") {
-            agent any
+            agent {
+                label "Windows"
+            }
 
             steps {
                 deleteDir()
                 checkout scm
-                virtualenv python_path: env.PYTHON3, requirements_file: "requirements.txt", "python setup.py build"
+                virtualenv python_path: env.PYTHON3, requirements_file: "requirements.txt", windows: true, "python setup.py build"
                 stash includes: '**', name: "Source", useDefaultExcludes: false
 
                 stash includes: 'deployment.yml', name: "Deployment"
