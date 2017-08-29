@@ -76,7 +76,7 @@ build_exe_options = {
         "six",
         "appdirs",
         # # "tests",
-        "hathi_submission_workflow"
+        "hsw"
     ],
     "excludes": ["tkinter"],
     "include_files": INCLUDE_FILES,
