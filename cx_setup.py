@@ -5,7 +5,7 @@ import pytest
 import hathi_submission_workflow
 import platform
 
-metadata_file = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'hathi_submission_workflow', '__version__.py')
+metadata_file = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'hsw', '__version__.py')
 metadata = dict()
 with open(metadata_file, 'r', encoding='utf-8') as f:
     exec(f.read(), metadata)
