@@ -23,7 +23,7 @@ pipeline {
             steps {
                 deleteDir()
                 checkout scm
-                virtualenv python_path: $ { env.PYTHON3 }, requirements_file: "requirements.txt", "python --version"
+                virtualenv python_path: env.PYTHON3, requirements_file: "requirements.txt", "python --version"
                 stash includes: '**', name: "Source", useDefaultExcludes: false
 
                 stash includes: 'deployment.yml', name: "Deployment"
