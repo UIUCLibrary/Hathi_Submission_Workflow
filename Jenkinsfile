@@ -31,14 +31,10 @@ pipeline {
         }
         stage("Build"){
             agent {
-                node {
-                    label "Windows"
-                    }
+                label "Windows"
             }
             steps{
-                bat "dir"
-                virtualenv python_path: env.PYTHON3, requirements_file: "requirements.txt", windows: true, "copy NUL > delme.txt"
-                bat "dir"
+                virtualenv python_path: env.PYTHON3, requirements_file: "requirements.txt", windows: true, "python setup.py build"
             }
         }
         stage("Unit tests") {
