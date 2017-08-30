@@ -1,5 +1,7 @@
+#!groovy
 @Library("ds-utils")
 import org.ds.*
+
 pipeline {
     agent any
     environment {
@@ -17,17 +19,22 @@ pipeline {
     }
     stages {
 
-        stage("Cloning Source") {
-            agent any
+        stage("Cloning and Generating Source") {
+            agent {
+                label "Windows"
+            }
 
             steps {
                 deleteDir()
                 checkout scm
+                virtualenv python_path: env.PYTHON3, requirements_file: "requirements.txt", windows: true, "python setup.py build"
                 stash includes: '**', name: "Source", useDefaultExcludes: false
+
                 stash includes: 'deployment.yml', name: "Deployment"
             }
 
         }
+
         stage("Unit tests") {
             when {
                 expression { params.UNIT_TESTS == true }
@@ -35,14 +42,27 @@ pipeline {
             steps {
                 parallel(
                         "Windows": {
-                            node(label: 'Windows') {
-                                deleteDir()
-                                unstash "Source"
-                                bat "${env.TOX}  -e pytest"
-                                junit 'reports/junit-*.xml'
-
+                            script {
+                                def runner = new Tox(this)
+                                runner.env = "pytest"
+                                runner.windows = true
+                                runner.stash = "Source"
+                                runner.label = "Windows"
+                                runner.post = {
+                                    junit 'reports/junit-*.xml'
+                                }
+                                runner.run()
                             }
                         }
+                        // "Windows": {
+                        //     node(label: 'Windows') {
+                        //         deleteDir()
+                        //         unstash "Source"
+                        //         bat "${env.TOX}  -e pytest"
+                        //         junit 'reports/junit-*.xml'
+                        //
+                        //     }
+                        // }
                         // "Linux": {
                         //     node(label: "!Windows") {
                         //         deleteDir()
@@ -128,7 +148,7 @@ pipeline {
                                        python cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir build/msi
                                        call .env/Scripts/deactivate.bat
                                     """
-                                bat "build\\msi\\hathi_submission_workflow.exe --pytest"
+                                bat "build\\msi\\hsw.exe --pytest"
                                 dir("dist") {
                                     stash includes: "*.msi", name: "msi"
                                 }
@@ -170,9 +190,9 @@ pipeline {
 
             post {
                 success {
-                    script{
+                    script {
                         unstash "Source"
-                        def  deployment_request = requestDeploy this, "deployment.yml"
+                        def deployment_request = requestDeploy this, "deployment.yml"
                         echo deployment_request
                         writeFile file: "deployment_request.txt", text: deployment_request
                         archiveArtifacts artifacts: "deployment_request.txt"
@@ -183,7 +203,7 @@ pipeline {
         stage("Update online documentation") {
             agent any
             when {
-              expression {params.UPDATE_DOCS == true }
+                expression { params.UPDATE_DOCS == true }
             }
 
             steps {

@@ -1,4 +1,4 @@
-.PHONY: all test gui install-dev
+.PHONY: all test gui install-dev docs
 all: install-dev gui
 
 install-dev:
@@ -10,3 +10,6 @@ gui:
 
 test: install-dev
 	@python setup.py test
+
+docs:
+	@python setup.py build_sphinx

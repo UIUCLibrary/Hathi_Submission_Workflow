@@ -2,10 +2,9 @@ import os
 import sys
 import cx_Freeze
 import pytest
-import hathi_submission_workflow
 import platform
 
-metadata_file = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'hathi_submission_workflow', '__version__.py')
+metadata_file = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'hsw', '__version__.py')
 metadata = dict()
 with open(metadata_file, 'r', encoding='utf-8') as f:
     exec(f.read(), metadata)
@@ -76,14 +75,14 @@ build_exe_options = {
         "six",
         "appdirs",
         # # "tests",
-        "hathi_submission_workflow"
+        "hsw"
     ],
     "excludes": ["tkinter"],
     "include_files": INCLUDE_FILES,
 
 }
 
-target_name = 'hathi_submission_workflow.exe' if platform.system() == "Windows" else 'hathi_submission_workflow'
+target_name = 'hsw.exe' if platform.system() == "Windows" else 'hsw'
 cx_Freeze.setup(
     name=metadata["FULL_TITLE"],
     description=metadata["__description__"],
@@ -94,8 +93,7 @@ cx_Freeze.setup(
     options={
         "build_exe": build_exe_options,
         "bdist_msi": {
-			# TODO: Fill in upgrade_code. example: {D8846842-2CF4-4F9A-8A2A-FFAFD8A5E10B}
-            # "upgrade_code": "",
+            "upgrade_code": "{1F20F6AD-58C2-45D6-B908-E8060D0059BD}",
             "data": {
                 "Shortcut": shortcut_table,
                 "Directory": directory_table
@@ -103,7 +101,7 @@ cx_Freeze.setup(
 
         }
     },
-    executables=[cx_Freeze.Executable("hathi_submission_workflow/__main__.py",
+    executables=[cx_Freeze.Executable("hsw/__main__.py",
                             targetName=target_name, base="Console")],
 
 )
