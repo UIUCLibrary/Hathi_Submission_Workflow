@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build" ToolsVersion="4.0">
+<!--<Import Project="HathiSubmitWorkflow\package.targets"/>-->
+  <PropertyGroup>
+    <PyBuildFolder>build\standalone\</PyBuildFolder>
+    <MSBuildCommunityTasksPath>$(SolutionDir)\.build</MSBuildCommunityTasksPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Python Include="python.exe"/>
+    <setuppy Include="setup.py"/>
+    <downloader Include="dlruntime.py"/>
+  </ItemGroup>
+  <!--<ItemGroup>-->
+    <!--<PackageReference Include="MSBuildTasks" Version="1.5.0.*"/>-->
+       <!--&lt;!&ndash;<IncludeAssets>All</IncludeAssets>&ndash;&gt;-->
+    <!--&lt;!&ndash;</PackageReference>&ndash;&gt;-->
+    <!--&lt;!&ndash;<MSIBuild Include="HathiSubmitWorkflow\HathiSubmitWorkflow.wixproj"/>&ndash;&gt;-->
+    <!--&lt;!&ndash;<PYBUILD Include="building\building.pyproj"/>&ndash;&gt;-->
+
+  <!--</ItemGroup>-->
+<!--<Import Project="HathiSubmitWorkflow\HathiSubmitWorkflow.wixproj"/>-->
+<!--  <Target Name="Build">
+    <Message Text="You still need to add something here"/>
+  </Target>
+  -->
+  <!--<Import Project="$(MSBuildCommunityTasksPath)\MSBuild.Community.Tasks.Targets" />-->
+  <!--<Import Project="$(MSBuildExtensionsPath)\MSBuildCommunityTasks\MSBuild.Community.Tasks.Targets"/>-->
+  <Target Name="PythonRuntime">
+    <Message Text="Adding Python runtime"/>
+    <Exec Command="@(Python) @(downloader)"/>
+  </Target>
+  <Target Name="PyDependencies" DependsOnTargets="PythonRuntime">
+    <Message Text="Adding Python 3rd party libraries"/>
+    <Exec Command="pip install pyqt5 --target $(PyBuildFolder)lib --upgrade"/>
+  </Target>
+  <Target Name="Build" DependsOnTargets="PyDependencies">
+    <Message Text="Creating a python build"/>
+    <!--https://www.python.org/ftp/python/3.6.1/python-3.6.1-embed-amd64.zip-->
+
+    <Exec Command="@(Python) @(setuppy) build -b build\standalone"/>
+<!--    <Exec Command="python setup.py build -b build\standalone"/>-->
+    <!--<MSBuild Targets="Build" Projects="@(PYBUILD)"/>-->
+  </Target>
+  <Target Name="msi">
+
+    <MSBuild Targets="Build" Projects="@(MSIBuild)" Properties="Configuration=Release"/>
+  </Target>
+  <Target Name="clean">
+    <MSBuild Targets="Clean" Projects="@(MSIBuild)" Properties="Configuration=Release"/>
+  </Target>
+</Project>
