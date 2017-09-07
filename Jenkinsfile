@@ -136,7 +136,7 @@ pipeline {
                                         REM pip install -r requirements.txt
                                         REM python setup.py bdist_wheel sdist
                                     """
-                                archiveArtifacts artifacts: "dist/**", fingerprint: true
+                                archiveArtifacts artifacts: "dist/*.msi*", fingerprint: true
                             }
                         },
                         "Source and Wheel formats": {
