@@ -139,9 +139,10 @@ pipeline {
                                          exit /b %ERRORLEVEL%
                                        ) 
                                     """
-                                archiveArtifacts artifacts: "dist/*.msi*", fingerprint: true
+
 
                                 dir("dist") {
+                                    archiveArtifacts artifacts: "*.msi*", fingerprint: true
                                     stash includes: "*.msi", name: "msi"
                                 }
                             }
