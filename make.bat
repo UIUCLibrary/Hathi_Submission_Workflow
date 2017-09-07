@@ -41,8 +41,8 @@ goto :eof
     set "VSCMD_START_DIR=%CD%"
     REM call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
     call "%vs140comntools%..\..\VC\vcvarsall.bat" x86_amd64
-    nuget install packages.config -OutputDirectory build\nugetpackages
-    MSBuild make.proj /t:msi
+    nuget install windows_build\packages.config -OutputDirectory build\nugetpackages
+    MSBuild windows_build\make.proj /t:msi /p:ProjectRoot="%CD%
     endlocal
 
 goto :eof
@@ -52,6 +52,6 @@ goto :eof
     setlocal
     set "VSCMD_START_DIR=%CD%"
     call "%vs140comntools%..\..\VC\vcvarsall.bat" x86_amd64
-    MSBuild make.proj /t:clean
+    MSBuild windows_build\make.proj /t:clean
     endlocal
 goto :eof

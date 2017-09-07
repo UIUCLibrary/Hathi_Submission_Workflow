@@ -2,14 +2,13 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build" ToolsVersion="4.0">
 <!--<Import Project="HathiSubmitWorkflow\package.targets"/>-->
   <PropertyGroup>
-    <PyBuildFolder>build\standalone\</PyBuildFolder>
+    <ProjectRoot/>
+    <PyBuildFolder>$(ProjectRoot)\build\standalone\</PyBuildFolder>
     <MSBuildCommunityTasksPath>$(SolutionDir)\.build</MSBuildCommunityTasksPath>
   </PropertyGroup>
   <ItemGroup>
     <Python Include="python.exe"/>
-    <setuppy Include="setup.py"/>
-    
-    <downloader Include="dlruntime.py"/>
+    <setuppy Include="$(ProjectRoot)\setup.py"/>
     <MSIBuild Include="build_msi.wixproj"/>
   </ItemGroup>
   <!--<ItemGroup>-->
@@ -28,20 +27,23 @@
   <!--<Import Project="$(MSBuildCommunityTasksPath)\MSBuild.Community.Tasks.Targets" />-->
   <!--<Import Project="$(MSBuildExtensionsPath)\MSBuildCommunityTasks\MSBuild.Community.Tasks.Targets"/>-->
   <Target Name="PythonRuntime">
+    <ItemGroup>
+      <downloader Include="$(MSBuildThisFileDirectory)\dlruntime.py"/>
+    </ItemGroup>
     <Message Text="Adding Python runtime"/>
-    <Exec Command="@(Python) @(downloader) $(PyBuildFolder)"/>
+    <Exec Command="@(Python) @(downloader) $(PyBuildFolder)" WorkingDirectory="$(ProjectRoot)"/>
   </Target>
   <Target Name="Wheel">
     <Message Text="Building wheel package"/>
-    <Exec Command="@(Python) @(setuppy) bdist_wheel"/>
+    <Exec Command="@(Python) @(setuppy) bdist_wheel" WorkingDirectory="$(ProjectRoot)"/>
   </Target>
 
   <Target Name="Build" DependsOnTargets="PythonRuntime;Wheel">
     <Message Text="Creating a python build"/>
     <ItemGroup>
-      <wheel_package Include="dist\*.whl"/>
+      <wheel_package Include="$(ProjectRoot)\dist\*.whl"/>
     </ItemGroup>
-    <Exec Command="@(Python) -m pip install @(wheel_package) --target $(PyBuildFolder)lib"/>
+    <Exec Command="@(Python) -m pip install @(wheel_package) --target $(PyBuildFolder)lib" WorkingDirectory="$(ProjectRoot)"/>
   </Target>
   <Target Name="msi" DependsOnTargets="Build">
     <MSBuild Targets="Build" Projects="@(MSIBuild)" Properties="Configuration=Release"/>

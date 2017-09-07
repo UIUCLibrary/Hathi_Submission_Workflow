@@ -8,7 +8,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <OutputName>HathiSubmitWorkflow</OutputName>
     <OutputType>Package</OutputType>
-    <BuildRoot>build\msi\</BuildRoot>
+    <BuildRoot>..\build\msi\</BuildRoot>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
   </PropertyGroup>
@@ -26,12 +26,12 @@
     <IntermediateOutputPath>$(BuildRoot)obj\$(Configuration)\</IntermediateOutputPath>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
-    <OutputPath>dist\</OutputPath>
+    <OutputPath>..\dist\</OutputPath>
     <!--<OutputPath>$(BuildRoot)bin\$(Configuration)\</OutputPath>-->
     <IntermediateOutputPath>$(BuildRoot)obj\$(Configuration)\</IntermediateOutputPath>
   </PropertyGroup>
   <PropertyGroup>
-    <DefineConstants>ItemDir=build\standalone</DefineConstants>
+    <DefineConstants>ItemDir=..\build\standalone</DefineConstants>
     <WixVariables>SourceDir=build\standalone</WixVariables>
   </PropertyGroup>
   <ItemGroup>
@@ -70,7 +70,7 @@
 <HeatDirectory OutputFile="$(ProjectDir)\ProductInstallFiles.wxs" Directory="build" GenerateGuidsNow="true" ComponentGroupName="ProductComponents" DirectoryRefId="INSTALLFOLDER" AutogenerateGuids="true" SuppressRegistry="true" SuppressCom="true" SuppressFragments="true" SuppressRootDirectory="false" ToolPath="$(WixToolPath)" NoLogo="true" />
 -->
     <ItemGroup>
-      <HarvestDirectory Include="build\standalone">
+      <HarvestDirectory Include="..\build\standalone">
         <!--<DiretoryRefId>INSTALLFOLDER</DiretoryRefId>-->
         <DirectoryRefId>INSTALLFOLDER</DirectoryRefId>
         <SuppressRootDirectory>true</SuppressRootDirectory>
@@ -81,11 +81,11 @@
       </HarvestDirectory>
     </ItemGroup>
   </Target>
-  <Import Project="build\nugetpackages\MSBuildTasks.1.5.0.235\build\MSBuildTasks.targets" Condition="Exists('build\nugetpackages\MSBuildTasks.1.5.0.235\build\MSBuildTasks.targets')" />
+  <Import Project="..\build\nugetpackages\MSBuildTasks.1.5.0.235\build\MSBuildTasks.targets" Condition="Exists('..\build\nugetpackages\MSBuildTasks.1.5.0.235\build\MSBuildTasks.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('build\nugetpackages\MSBuildTasks.1.5.0.235\build\MSBuildTasks.targets')" Text="$([System.String]::Format('$(ErrorText)', 'build\nugetpackages\MSBuildTasks.1.5.0.235\build\MSBuildTasks.targets'))" />
+    <Error Condition="!Exists('..\build\nugetpackages\MSBuildTasks.1.5.0.235\build\MSBuildTasks.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\build\nugetpackages\MSBuildTasks.1.5.0.235\build\MSBuildTasks.targets'))" />
   </Target>
 </Project>
