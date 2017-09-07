@@ -131,9 +131,9 @@ pipeline {
                                 unstash "Source"
                                 bat """${env.PYTHON3} -m venv .env
                                         call .env/Scripts/activate.bat
+                                        pip install --upgrade pip setuptools
+                                        pip install -r requirements.txt
                                         call make.bat release
-                                        REM pip install --upgrade pip setuptools
-                                        REM pip install -r requirements.txt
                                         REM python setup.py bdist_wheel sdist
                                     """
                                 archiveArtifacts artifacts: "dist/*.msi*", fingerprint: true
