@@ -125,6 +125,20 @@ pipeline {
 
             steps {
                 parallel(
+                        "StandAloneBuild": {
+                            node(label: "Windows") {
+                                deleteDir()
+                                unstash "Source"
+                                bat """${env.PYTHON3} -m venv .env
+                                        call .env/Scripts/activate.bat
+                                        call make.bat release
+                                        REM pip install --upgrade pip setuptools
+                                        REM pip install -r requirements.txt
+                                        REM python setup.py bdist_wheel sdist
+                                    """
+                                archiveArtifacts artifacts: "dist/**", fingerprint: true
+                            }
+                        },
                         "Source and Wheel formats": {
                             node(label: "Windows") {
                                 deleteDir()
