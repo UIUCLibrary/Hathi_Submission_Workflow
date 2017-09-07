@@ -24,7 +24,9 @@ RUNTIMES = {
     ("3.6.2", ARCHITECTURES.x64): Runtime("https://www.python.org/ftp/python/3.6.2/python-3.6.2-embed-amd64.zip",
                                           "0fdfe9f79e0991815d6fc1712871c17f"),
     ("3.6.2", ARCHITECTURES.x86): Runtime("https://www.python.org/ftp/python/3.6.2/python-3.6.2-embed-win32.zip",
-                                          "2ca4768fdbadf6e670e97857bfab83e8")
+                                          "2ca4768fdbadf6e670e97857bfab83e8"),
+    ("3.6.1", ARCHITECTURES.x64): Runtime("https://www.python.org/ftp/python/3.6.1/python-3.6.1-amd64.exe",
+                                          "ad69fdacde90f2ce8286c279b11ca188")
 }
 
 
