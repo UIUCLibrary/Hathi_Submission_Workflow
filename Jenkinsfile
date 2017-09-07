@@ -134,7 +134,10 @@ pipeline {
                                         pip install --upgrade pip setuptools
                                         pip install -r requirements.txt
                                         call make.bat release
-                                        REM python setup.py bdist_wheel sdist
+                                       IF NOT !ERRORLEVEL! == 0 ( 
+                                         echo ABORT: !ERRORLEVEL!
+                                         exit /b !ERRORLEVEL!
+                                       ) 
                                     """
                                 archiveArtifacts artifacts: "dist/*.msi*", fingerprint: true
                             }
