@@ -140,6 +140,10 @@ pipeline {
                                        ) 
                                     """
                                 archiveArtifacts artifacts: "dist/*.msi*", fingerprint: true
+
+                                dir("dist") {
+                                    stash includes: "*.msi", name: "msi"
+                                }
                             }
                         },
                         "Source and Wheel formats": {
@@ -152,9 +156,6 @@ pipeline {
                                         pip install -r requirements.txt
                                         python setup.py bdist_wheel sdist
                                     """
-                                dir("dist") {
-                                    stash includes: "*.msi", name: "msi"
-                                }
 
                                 archiveArtifacts artifacts: "dist/**", fingerprint: true
                             }
