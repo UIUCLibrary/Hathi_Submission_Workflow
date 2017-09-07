@@ -120,10 +120,15 @@ def main():
     if not os.path.exists(RUNTIME_CACHE):
         print("Creating {}".format(RUNTIME_CACHE))
         os.makedirs(RUNTIME_CACHE)
-    print("Downloading runtime.")
-    file_name = download_runtime(url=runtime.url, md5=runtime.md5, destination=RUNTIME_CACHE)
-    print("Downloaded {}".format(os.path.basename(file_name)))
-    print("Adding Python runtime to {}".format(args.destination))
+    cached_file = os.path.join(RUNTIME_CACHE, os.path.basename(runtime.url))
+    if os.path.exists(cached_file):
+        print("Using cached {}".format(cached_file))
+        file_name = cached_file
+    else:
+        print("Downloading runtime.")
+        file_name = download_runtime(url=runtime.url, md5=runtime.md5, destination=RUNTIME_CACHE)
+        print("Downloaded {}".format(os.path.basename(file_name)))
+        print("Adding Python runtime to {}".format(args.destination))
     install_python(file_name, destination=args.destination)
     fixup_python_runtime(path=args.destination)
 
