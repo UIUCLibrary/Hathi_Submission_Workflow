@@ -152,33 +152,37 @@ pipeline {
                                         pip install -r requirements.txt
                                         python setup.py bdist_wheel sdist
                                     """
-                                archiveArtifacts artifacts: "dist/**", fingerprint: true
-                            }
-                        },
-                        "Windows CX_Freeze MSI": {
-                            node(label: "Windows") {
-                                deleteDir()
-                                unstash "Source"
-                                bat """${env.PYTHON3} -m venv .env
-                                       call .env/Scripts/activate.bat
-                                       pip install -r requirements.txt
-                                       python cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir build/msi
-                                       call .env/Scripts/deactivate.bat
-                                    """
-                                bat "build\\msi\\hsw.exe --pytest"
                                 dir("dist") {
                                     stash includes: "*.msi", name: "msi"
                                 }
 
-                            }
-                            node(label: "Windows") {
-                                deleteDir()
-                                git url: 'https://github.com/UIUCLibrary/ValidateMSI.git'
-                                unstash "msi"
-                                bat "call validate.bat -i"
-                                archiveArtifacts artifacts: "*.msi", fingerprint: true
+                                archiveArtifacts artifacts: "dist/**", fingerprint: true
                             }
                         },
+//                        "Windows CX_Freeze MSI": {
+//                            node(label: "Windows") {
+//                                deleteDir()
+//                                unstash "Source"
+//                                bat """${env.PYTHON3} -m venv .env
+//                                       call .env/Scripts/activate.bat
+//                                       pip install -r requirements.txt
+//                                       python cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir build/msi
+//                                       call .env/Scripts/deactivate.bat
+//                                    """
+//                                bat "build\\msi\\hsw.exe --pytest"
+//                                dir("dist") {
+//                                    stash includes: "*.msi", name: "msi"
+//                                }
+//
+//                            }
+//                            node(label: "Windows") {
+//                                deleteDir()
+//                                git url: 'https://github.com/UIUCLibrary/ValidateMSI.git'
+//                                unstash "msi"
+//                                bat "call validate.bat -i"
+//                                archiveArtifacts artifacts: "*.msi", fingerprint: true
+//                            }
+//                        },
                 )
             }
         }
