@@ -6,7 +6,7 @@ if "%1" == "install-dev"    goto install-dev
 if "%1" == "gui"            goto gui
 if "%1" == "test"           goto test
 if "%1" == "release"        goto release
-if "%1" == "clean"        goto clean
+if "%1" == "clean"          goto clean
 EXIT /B 0
 
 :main
@@ -48,10 +48,11 @@ goto :eof
 goto :eof
 
 :clean
+    echo Calling clean for Python
     python setup.py clean
     setlocal
     set "VSCMD_START_DIR=%CD%"
     call "%vs140comntools%..\..\VC\vcvarsall.bat" x86_amd64
-    MSBuild windows_build\make.proj /t:clean
+    MSBuild windows_build\make.proj /t:Clean /p:ProjectRoot=%CD%
     endlocal
 goto :eof
