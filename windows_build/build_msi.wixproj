@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" InitialTargets="EnsureWixToolsetInstalled" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
+    <MSIProductVersion>1.0.1</MSIProductVersion>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
+    <Platform Condition=" '$(Platform)' == '' ">x64</Platform>
+    <ProcessorArchitecture Condition=" '$(ProcessorArchitecture)' == '' ">amd64</ProcessorArchitecture>
     <ProductVersion>3.10</ProductVersion>
     <ProjectGuid>7b0eea63-3ef8-4d45-a031-cdb2e04f1526</ProjectGuid>
     <SchemaVersion>2.0</SchemaVersion>
-    <OutputName>HathiSubmitWorkflow</OutputName>
+    <OutputName>Hathi Submit Workflow-$(MSIProductVersion)-$(ProcessorArchitecture)</OutputName>
     <OutputType>Package</OutputType>
     <BuildRoot>..\build\msi\</BuildRoot>
     <NuGetPackageImportStamp>
@@ -31,7 +33,8 @@
     <IntermediateOutputPath>$(BuildRoot)obj\$(Configuration)\</IntermediateOutputPath>
   </PropertyGroup>
   <PropertyGroup>
-    <DefineConstants>ItemDir=..\build\standalone</DefineConstants>
+    
+    <DefineConstants>ItemDir=..\build\standalone;WiXProductVersion=$(MSIProductVersion)</DefineConstants>
     <WixVariables>SourceDir=build\standalone</WixVariables>
   </PropertyGroup>
   <ItemGroup>
