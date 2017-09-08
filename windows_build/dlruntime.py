@@ -102,7 +102,8 @@ def fixup_python_runtime(path):
     path_file = find_path_file(path)
     print("Adding line \"./lib\" to {}".format(path_file))
     with open(path_file, "a") as fw:
-        fw.write("\n./lib")
+        fw.write("\n./lib\n")
+        fw.write("\n./lib/site-packages\n")
 
 
 def main():
