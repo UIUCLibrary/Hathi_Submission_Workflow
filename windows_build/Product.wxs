@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:util="http://schemas.microsoft.com/wix/UtilExtension"     >
-	<Product Id="*" Name="HathiSubmitWorkflow" Language="1033" Version="1.0.0.0" Manufacturer="UIUC Library" UpgradeCode="807cb2d3-6fa5-49ea-a5ed-402d72d2d0db">
+	<Product Id="*" Name="HathiSubmitWorkflow" Language="1033" Version="$(var.WiXProductVersion)" Manufacturer="UIUC Library" UpgradeCode="807cb2d3-6fa5-49ea-a5ed-402d72d2d0db">
 		<Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" Platform="x64"/>
 
 		<MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
