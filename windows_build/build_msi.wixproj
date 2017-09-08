@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" InitialTargets="EnsureWixToolsetInstalled" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
-    <MSIProductVersion>1.0.1</MSIProductVersion>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">x64</Platform>
     <ProcessorArchitecture Condition=" '$(ProcessorArchitecture)' == '' ">amd64</ProcessorArchitecture>
-    <ProductVersion>3.10</ProductVersion>
+    <ProductVersion Condition="'$(ProductVersion)' == '' ">1.0.0</ProductVersion>
     <ProjectGuid>7b0eea63-3ef8-4d45-a031-cdb2e04f1526</ProjectGuid>
-    <SchemaVersion>2.0</SchemaVersion>
-    <OutputName>Hathi Submit Workflow-$(MSIProductVersion)-$(ProcessorArchitecture)</OutputName>
+    <SchemaVersion >2.0</SchemaVersion>
+    <OutputName>Hathi Submit Workflow-$(ProductVersion)-$(ProcessorArchitecture)</OutputName>
     <OutputType>Package</OutputType>
     <BuildRoot>..\build\msi\</BuildRoot>
     <NuGetPackageImportStamp>
@@ -29,12 +28,11 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
     <OutputPath>..\dist\</OutputPath>
-    <!--<OutputPath>$(BuildRoot)bin\$(Configuration)\</OutputPath>-->
     <IntermediateOutputPath>$(BuildRoot)obj\$(Configuration)\</IntermediateOutputPath>
   </PropertyGroup>
   <PropertyGroup>
     
-    <DefineConstants>ItemDir=..\build\standalone;WiXProductVersion=$(MSIProductVersion)</DefineConstants>
+    <DefineConstants>ItemDir=..\build\standalone;WiXProductVersion=$(ProductVersion)</DefineConstants>
     <WixVariables>SourceDir=build\standalone</WixVariables>
   </PropertyGroup>
   <ItemGroup>
@@ -69,6 +67,7 @@
 	</Target>
 	-->
   <Target Name="BeforeBuild">
+    <Message Text="the MSBuildProjectName = $(MSBuildProjectName)"/>
     <!--
 <HeatDirectory OutputFile="$(ProjectDir)\ProductInstallFiles.wxs" Directory="build" GenerateGuidsNow="true" ComponentGroupName="ProductComponents" DirectoryRefId="INSTALLFOLDER" AutogenerateGuids="true" SuppressRegistry="true" SuppressCom="true" SuppressFragments="true" SuppressRootDirectory="false" ToolPath="$(WixToolPath)" NoLogo="true" />
 -->
