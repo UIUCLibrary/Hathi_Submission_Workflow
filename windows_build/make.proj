@@ -51,18 +51,22 @@
     <Exec Command="@(Python) -m pip install @(wheel_package) --target $(PyBuildStandaloneBuildPath)lib" WorkingDirectory="$(ProjectRoot)"/>
   </Target>
   <Target Name="msi" DependsOnTargets="Build">
-    <MSBuild Targets="Build" Projects="@(MSIBuild)" Properties="Configuration=Release"/>
+    <Exec Command="@(Python) @(setuppy) --version" WorkingDirectory="$(ProjectRoot)" ConsoleToMSBuild="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="ProductVersion"/>
+    </Exec>
+    <MSBuild Targets="Build" Projects="@(MSIBuild)" Properties="Configuration=Release;ProductVersion=$(ProductVersion)"/>
     <MakeDir Directories="$(MSIBuildPath)" Condition="!Exists('$(MSIBuildPath)')"/>
     <!--<MSBuild -->
   </Target>
   <Target Name="Clean">
-    <MSBuild Targets="Clean" Projects="@(MSIBuild)" Properties="Configuration=Release"/>
+    <MSBuild Targets="Clean" Projects="@(MSIBuild)" Properties="Configuration=Release;"/>
     <RemoveDir Directories="$(PythonRuntimeCachePath)"/>
     <RemoveDir Directories="$(MSIBuildPath)"/>
     <RemoveDir Directories="$(PyBuildStandaloneBuildPath)"/>
     
   </Target>
 <Target Name="Dummy">
-  <Message Text="I'm a dummy $(Platform)"/>
+  <Message Text="I'm a dummy MSBuildProjectName = $(MSBuildProjectName)"/>
+
 </Target>
 </Project>
