@@ -67,10 +67,6 @@
 	</Target>
 	-->
   <Target Name="BeforeBuild">
-    <Message Text="the MSBuildProjectName = $(MSBuildProjectName)"/>
-    <!--
-<HeatDirectory OutputFile="$(ProjectDir)\ProductInstallFiles.wxs" Directory="build" GenerateGuidsNow="true" ComponentGroupName="ProductComponents" DirectoryRefId="INSTALLFOLDER" AutogenerateGuids="true" SuppressRegistry="true" SuppressCom="true" SuppressFragments="true" SuppressRootDirectory="false" ToolPath="$(WixToolPath)" NoLogo="true" />
--->
     <ItemGroup>
       <HarvestDirectory Include="..\build\standalone">
         <!--<DiretoryRefId>INSTALLFOLDER</DiretoryRefId>-->
