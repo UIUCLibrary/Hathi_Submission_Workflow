@@ -2,9 +2,12 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build" ToolsVersion="4.0">
 <!--<Import Project="HathiSubmitWorkflow\package.targets"/>-->
   <PropertyGroup>
-    <ProjectRoot/>
-    <PyBuildFolder>$(ProjectRoot)\build\standalone\</PyBuildFolder>
+    <ProjectRoot Condition="'$(ProjectRoot)' == ''">$([System.IO.PATH]::GetFullPath('..'))\</ProjectRoot>
+    <PyBuildFolder>$(ProjectRoot)\build\</PyBuildFolder>
+    <PyBuildStandaloneBuildPath>$(PyBuildFolder)standalone\</PyBuildStandaloneBuildPath>
     <MSBuildCommunityTasksPath>$(SolutionDir)\.build</MSBuildCommunityTasksPath>
+    <MSIBuildPath>$(PyBuildFolder)\msi\</MSIBuildPath>
+    <PythonRuntimeCachePath>$(PyBuildFolder)\runtimes\</PythonRuntimeCachePath>
   </PropertyGroup>
   <ItemGroup>
     <Python Include="python.exe"/>
@@ -31,7 +34,8 @@
       <downloader Include="$(MSBuildThisFileDirectory)\dlruntime.py"/>
     </ItemGroup>
     <Message Text="Adding Python runtime"/>
-    <Exec Command="@(Python) @(downloader) $(PyBuildFolder)" WorkingDirectory="$(ProjectRoot)"/>
+    <MakeDir Directories ="$(PythonRuntimeCachePath)" Condition="!Exists('$(PythonRuntimeCachePath)')"/>
+    <Exec Command="@(Python) @(downloader) $(PyBuildStandaloneBuildPath)" WorkingDirectory="$(ProjectRoot)"/>
   </Target>
   <Target Name="Wheel">
     <Message Text="Building wheel package"/>
@@ -40,16 +44,25 @@
 
   <Target Name="Build" DependsOnTargets="PythonRuntime;Wheel">
     <Message Text="Creating a python build"/>
+    <MakeDir Directories="$(PyBuildStandaloneBuildPath)" Condition="!Exists('$(PyBuildStandaloneBuildPath)')"/>
     <ItemGroup>
       <wheel_package Include="$(ProjectRoot)\dist\*.whl"/>
     </ItemGroup>
-    <Exec Command="@(Python) -m pip install @(wheel_package) --target $(PyBuildFolder)lib" WorkingDirectory="$(ProjectRoot)"/>
+    <Exec Command="@(Python) -m pip install @(wheel_package) --target $(PyBuildStandaloneBuildPath)lib" WorkingDirectory="$(ProjectRoot)"/>
   </Target>
   <Target Name="msi" DependsOnTargets="Build">
     <MSBuild Targets="Build" Projects="@(MSIBuild)" Properties="Configuration=Release"/>
+    <MakeDir Directories="$(MSIBuildPath)" Condition="!Exists('$(MSIBuildPath)')"/>
     <!--<MSBuild -->
   </Target>
-  <Target Name="clean">
+  <Target Name="Clean">
     <MSBuild Targets="Clean" Projects="@(MSIBuild)" Properties="Configuration=Release"/>
+    <RemoveDir Directories="$(PythonRuntimeCachePath)"/>
+    <RemoveDir Directories="$(MSIBuildPath)"/>
+    <RemoveDir Directories="$(PyBuildStandaloneBuildPath)"/>
+    
   </Target>
+<Target Name="Dummy">
+  <Message Text="I'm a dummy $(Platform)"/>
+</Target>
 </Project>
