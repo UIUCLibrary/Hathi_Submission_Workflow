@@ -6,8 +6,8 @@ from .package_files_delegate import FileSelectionDelegate
 
 
 class QtHathiWizardPage(QtWidgets.QWizardPage):
-    page_title = None
-    help_information = None
+    page_title = None        # type: str
+    help_information = None  # type: str
 
     def __init__(self, parent=None):
         super().__init__(parent)
