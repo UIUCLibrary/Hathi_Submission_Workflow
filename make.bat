@@ -55,7 +55,7 @@ goto :eof
     echo Creating standalone release
     setlocal
     set "VSCMD_START_DIR=%CD%"
-    if not exist ".env" call venv
+    if not exist ".env" call :venv
     REM call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
     if exist ".env" call .env\Scripts\activate.bat
     call "%vs140comntools%..\..\VC\vcvarsall.bat" x86_amd64
