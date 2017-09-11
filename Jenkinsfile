@@ -129,16 +129,17 @@ pipeline {
                             node(label: "Windows") {
                                 deleteDir()
                                 unstash "Source"
-                                bat """${env.PYTHON3} -m venv .env
-                                        call .env/Scripts/activate.bat
-                                        pip install --upgrade pip setuptools
-                                        pip install -r requirements.txt
-                                        call make.bat release
-                                       IF NOT %ERRORLEVEL% == 0 ( 
-                                         echo ABORT: %ERRORLEVEL%
-                                         exit /b %ERRORLEVEL%
-                                       ) 
-                                    """
+                                bat "call make.bat release"
+//                                bat """${env.PYTHON3} -m venv .env
+//                                        call .env/Scripts/activate.bat
+//                                        pip install --upgrade pip setuptools
+//                                        pip install -r requirements.txt
+//                                        call make.bat release
+//                                       IF NOT %ERRORLEVEL% == 0 (
+//                                         echo ABORT: %ERRORLEVEL%
+//                                         exit /b %ERRORLEVEL%
+//                                       )
+//                                    """
 
 
                                 dir("dist") {
