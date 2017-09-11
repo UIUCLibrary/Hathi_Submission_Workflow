@@ -146,21 +146,31 @@ pipeline {
                                     stash includes: "*.msi", name: "msi"
                                 }
                             }
-                        },
-                        "Source and Wheel formats": {
+                        }, "Windows Wheel": {
                             node(label: "Windows") {
                                 deleteDir()
                                 unstash "Source"
-                                bat """${env.PYTHON3} -m venv .env
-                                        call .env/Scripts/activate.bat
-                                        pip install --upgrade pip setuptools
-                                        pip install -r requirements.txt
-                                        python setup.py bdist_wheel sdist
-                                    """
-
+                                bat "${env.PYTHON3} setup.py bdist_wheel --universal"
                                 archiveArtifacts artifacts: "dist/**", fingerprint: true
                             }
                         },
+//                        "Source and Wheel formats": {
+//                            node(label: "Windows") {
+//                                deleteDir()
+//                                unstash "Source"
+//                                bat """${env.PYTHON3} -m venv .env
+//                                        call .env/Scripts/activate.bat
+//                                        pip install --upgrade pip setuptools
+//                                        pip install -r requirements.txt
+//                                        python setup.py bdist_wheel sdist
+//                                    """
+//
+//                                archiveArtifacts artifacts: "dist/**", fingerprint: true
+//                            }
+//                        },
+                        "Source Release": {
+                            createSourceRelease(env.PYTHON3, "Source")
+                        }
 //                        "Windows CX_Freeze MSI": {
 //                            node(label: "Windows") {
 //                                deleteDir()
