@@ -23,7 +23,6 @@ import sys
 cwd = os.getcwd()
 project_root = os.path.abspath(os.path.join(os.path.dirname(cwd), ".."))
 metadata_file = os.path.join(project_root, 'hsw', '__version__.py')
-print("Metadata file = {}".format(metadata_file))
 metadata = dict()
 with open(metadata_file, 'r', encoding='utf-8') as f:
     exec(f.read(), metadata)
