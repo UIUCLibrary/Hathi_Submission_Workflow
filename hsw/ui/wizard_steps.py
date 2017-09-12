@@ -63,10 +63,15 @@ class SelectRoot(QtHathiWizardPage):
     def validatePage(self):
         super().validatePage()
         root = self.field("RootLocation")
-        if os.path.exists(root) and os.path.isdir(root):
-            return True
+        try:
+            if os.path.exists(root) and os.path.isdir(root):
+                return True
+        except WindowsError as e:
+            error_message = QtWidgets.QMessageBox(self)
+            error_message.setIcon(QtWidgets.QMessageBox.Critical)
+            error_message.setText("Error")
+            error_message.setInformativeText(e)
         return False
-
 
 class PackageBrowser(QtHathiWizardPage):
     page_title = "Package Browser"
@@ -81,8 +86,18 @@ class PackageBrowser(QtHathiWizardPage):
 
     def load_model(self, root):
         packages = PackagesList(root)
-        for path in filter(lambda item: item.is_dir(), os.scandir(root)):
-            packages.add_package(path.path)
+        try:
+            for path in filter(lambda item: item.is_dir(), os.scandir(root)):
+                packages.add_package(path.path)
+            self.package_view.setEnabled(True)
+        except WindowsError as e:
+            self.package_view.setEnabled(False)
+            error_message = QtWidgets.QMessageBox(self)
+            error_message.setIcon(QtWidgets.QMessageBox.Critical)
+            error_message.setText("Error")
+            error_message.setInformativeText(str(e))
+            error_message.setWindowTitle("Error")
+            error_message.show()
         self.model = PackageModel(packages)
 
     def initializePage(self):
