@@ -24,9 +24,7 @@ class QtHathiWizardPage(QtWidgets.QWizardPage):
     @classmethod
     def add_information_card(cls, value: "QtHathiWizardPage"):
         if value.help_information:
-            value._info_card = QtWidgets.QLabel(value)
-            value._info_card.setText(value.help_information)
-            value.my_layout.addWidget(value._info_card)
+            value.setSubTitle(value.help_information)
 
 
 class Welcome(QtHathiWizardPage):
@@ -43,10 +41,16 @@ class SelectRoot(QtHathiWizardPage):
         self.source_path_layout = QtWidgets.QHBoxLayout()
         self.source_path_text = QtWidgets.QLineEdit(self)
         self.source_path_browse_button = QtWidgets.QPushButton(self)
+        self.source_path_browse_button.clicked.connect(self.browser_folder)
         self.source_path_browse_button.setText("Browse")
         self.source_path_layout.addWidget(self.source_path_text)
         self.source_path_layout.addWidget(self.source_path_browse_button)
         self.my_layout.addLayout(self.source_path_layout)
+
+    def browser_folder(self):
+        path = QtWidgets.QFileDialog.getExistingDirectory(self, "Find path")
+        if path:
+            self.source_path_text.setText(path)
 
 
 class PackageBrowser(QtHathiWizardPage):
@@ -63,7 +67,15 @@ class PackageBrowser(QtHathiWizardPage):
         self.package_view = QtWidgets.QTreeView(self)
         self.package_view.setModel(self.model)
         self.package_view.setItemDelegateForColumn(1, FileSelectionDelegate(self))
+        self.package_view.setContentsMargins(0, 0, 0, 0)
         self.my_layout.addWidget(self.package_view)
+        self.my_layout.setContentsMargins(0, 0, 0, 0)
+
+    def initializePage(self):
+        print("Loading packages")
+
+    def cleanupPage(self):
+        print("cleaning up")
 
 
 class EndPage(QtHathiWizardPage):
