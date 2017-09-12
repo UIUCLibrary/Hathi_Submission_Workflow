@@ -17,7 +17,7 @@ class ProcessProgress(metaclass=abc.ABCMeta):
     @property
     @abc.abstractmethod
     def total_tasks(self) -> int:
-        raise 0
+        pass
 
     @property
     @abc.abstractmethod
@@ -46,13 +46,14 @@ class ProcessProgress(metaclass=abc.ABCMeta):
 
 class DummyProgress(ProcessProgress):
     """Not to be used, mainly as an example"""
+
     def __init__(self, parent):
         self.items = [lambda: print("fooo") for x in range(50)]
         super().__init__(parent)
         self._counter = 0
 
     @property
-    def total_tasks(self) -> int():
+    def total_tasks(self) -> int:
         return len(self.items)
 
     def process_next_task(self):
@@ -68,7 +69,8 @@ class DummyProgress(ProcessProgress):
 
 class ListProgress(ProcessProgress):
     """Not to be used, mainly as an example"""
-    def __init__(self, parent, items: list):
+
+    def __init__(self, parent, items: list) -> None:
         self.items = items
         super().__init__(parent)
         self._counter = 0
