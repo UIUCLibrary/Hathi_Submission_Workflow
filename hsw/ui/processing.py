@@ -85,5 +85,5 @@ class ListProgress(ProcessProgress):
 
     def process_next_task(self):
         item = self.items[self._counter]
-        print(item)
+        self._update_message(str(item))
         self._counter += 1
