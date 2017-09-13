@@ -11,8 +11,8 @@ class HathiWizard(QtWidgets.QWizard):
         super().__init__(parent)
         self.data = {}
         self.logger = message_logger.Logger()
-        self.document = message_logger.DocumentWriter()
-        self.logger.attach(self.document)
+        self.document_logger = message_logger.DocumentWriter()
+        self.logger.attach(self.document_logger)
         self.addPage(wizard_steps.Welcome(self))
         self.addPage(wizard_steps.WorkflowSelection(self))
         self.addPage(wizard_steps.SelectRoot(self))
