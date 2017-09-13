@@ -70,8 +70,9 @@ class DummyProgress(ProcessProgress):
 class ListProgress(ProcessProgress):
     """Not to be used, mainly as an example"""
 
-    def __init__(self, parent, items: list) -> None:
+    def __init__(self, parent, items: list, logger) -> None:
         self.items = items
+        self.logger = logger
         super().__init__(parent)
         self._counter = 0
 
@@ -86,4 +87,5 @@ class ListProgress(ProcessProgress):
     def process_next_task(self):
         item = self.items[self._counter]
         self._update_message(str(item))
+        self.logger(str(item))
         self._counter += 1
