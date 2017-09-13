@@ -41,7 +41,7 @@ class ProcessProgress(metaclass=abc.ABCMeta):
             self.process_dialog.setValue(i + 1)
 
     def _update_message(self, message):
-        self.process_dialog.setLabelText(message)
+        self.process_dialog.setLabelText(str(message))
 
 
 class DummyProgress(ProcessProgress):
@@ -70,11 +70,12 @@ class DummyProgress(ProcessProgress):
 class ListProgress(ProcessProgress):
     """Not to be used, mainly as an example"""
 
-    def __init__(self, parent, items: list, logger) -> None:
+    def __init__(self, parent, items: list, logger=None) -> None:
         self.items = items
-        self.logger = logger
+        self.logger = logger or print
         super().__init__(parent)
         self._counter = 0
+
 
     @property
     def total_tasks(self) -> int:
@@ -86,6 +87,6 @@ class ListProgress(ProcessProgress):
 
     def process_next_task(self):
         item = self.items[self._counter]
-        self._update_message(str(item))
-        self.logger(str(item))
+
+        self.logger(item.metadata["package_name"])
         self._counter += 1
