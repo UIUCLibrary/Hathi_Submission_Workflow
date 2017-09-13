@@ -37,6 +37,10 @@ goto :eof
     python setup.py test
 goto :eof
 
+:venvactivate
+	call .env\Scripts\activate.bat
+goto :eof
+
 :venv
     if exist ".env" echo "%CD%\.env" folder already exists. & goto :eof
     echo Creating a local virtualenv in "%CD%\.env"
