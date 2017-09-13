@@ -11,8 +11,8 @@ from .packages_model import PackageModel
 
 
 class QtHathiWizardPage(QtWidgets.QWizardPage):
-    page_title = None  # type: str
-    help_information = None  # type: str
+    page_title = None           # type: str
+    help_information = None     # type: str
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -25,7 +25,7 @@ class QtHathiWizardPage(QtWidgets.QWizardPage):
     def initializePage(self):
         super().initializePage()
         self.valid = True
-        # TODO: remove the debug pring
+        # TODO: remove the debug printing
         print(self.data)
 
     @classmethod
@@ -48,13 +48,15 @@ class HathiWizardProcess(QtHathiWizardPage):
         super().__init__(parent)
         self.logger = parent.logger
         self.console = QtWidgets.QTextBrowser(self)
-        self.console.setDocument(parent.document.document)
-
+        self.console.setDocument(parent.document_logger.document)
         self.process_button = QtWidgets.QPushButton(self)
         self.process_button.setText("Process")
         self.process_button.clicked.connect(self.process)
         self.my_layout.addWidget(self.console)
         self.my_layout.addWidget(self.process_button)
+        self.my_layout.setContentsMargins(0, 0, 0, 0)
+
+
 
     # def cleanupPage(self):
     #     super().cleanupPage()
@@ -137,7 +139,7 @@ class PackageBrowser(QtHathiWizardPage):
                 packages.add_package(path.path)
             self.package_view.setEnabled(True)
 
-        except WindowsError as e:
+        except OSError as e:
             self.package_view.setEnabled(False)
             self.valid = False
             error_message = QtWidgets.QMessageBox(self)
@@ -173,9 +175,9 @@ class Prep(HathiWizardProcess):
     page_title = "Prep"
 
     def process(self):
-        self.logger.log("{} Proccesssing".format(datetime.datetime.now()))
-        foo = processing.ListProgress(self, self.data['packages'],
-                                      lambda l: self.logger.log("{}{}".format(datetime.datetime.now(), l)))
+        self.logger.log("{} Processing".format(datetime.datetime.now()))
+        foo = processing.ListProgress(self, self.data['packages']) # ,
+        foo.logger = lambda x: self.logger.log("Prepping: {}".format(x))
         try:
             foo.process()
         except processing.ProcessCanceled:
@@ -195,8 +197,8 @@ class Validate(HathiWizardProcess):
     page_title = "Validate Package"
 
     def process(self):
-        foo = processing.ListProgress(self, self.data['packages'],
-                                      lambda l: self.logger.log("{}{}".format(datetime.datetime.now(), l)))
+        foo = processing.ListProgress(self, self.data['packages'])
+        foo.logger = lambda x: self.logger.log("Validating: {}".format(x))
         try:
             foo.process()
         except processing.ProcessCanceled:
@@ -208,8 +210,9 @@ class Zip(HathiWizardProcess):
     page_title = "Zip packages for submit"
 
     def process(self):
-        foo = processing.ListProgress(self, self.data['packages'],
-                                      lambda l: self.logger.log("{}{}".format(datetime.datetime.now(), l)))
+        foo = processing.ListProgress(self, self.data['packages'])
+        foo.logger = lambda x: self.logger.log("Zipping : {}".format(x))
+                                      # lambda l: self.logger.log("{}{}".format(datetime.datetime.now(), l)))
         try:
             foo.process()
         except processing.ProcessCanceled:
