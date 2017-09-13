@@ -1,5 +1,5 @@
 import abc
-from PyQt5 import QtGui
+from PyQt5.QtGui import QTextDocument
 
 
 class AbsObserver(metaclass=abc.ABCMeta):
@@ -31,20 +31,19 @@ class Logger(AbsSubject):
         self.messages = []
 
     def log(self, message):
-        self.messages.append(message)
+        self.messages.append(str(message))
         self.notify(self.messages)
 
     def clean(self):
         self.messages = []
         self.notify(self.messages)
-        print("Clean")
+
 
 class DocumentWriter(AbsObserver):
-
     def __init__(self) -> None:
-        self.document = QtGui.QTextDocument()
-
+        self.document = QTextDocument()
 
     def update(self, value):
         message = "\n".join(reversed(value))
+
         self.document.setPlainText(message)
