@@ -9,7 +9,7 @@ class AbsObserver(metaclass=abc.ABCMeta):
 
 
 class AbsSubject(metaclass=abc.ABCMeta):
-    _observers = set()
+    _observers = set()  # type: ignore
 
     def attach(self, observer: AbsObserver):
         self._observers |= {observer}
@@ -28,7 +28,7 @@ class AbsSubject(metaclass=abc.ABCMeta):
 class Logger(AbsSubject):
     def __init__(self) -> None:
         super().__init__()
-        self.messages = []
+        self.messages = []  # type: ignore
 
     def log(self, message):
         self.messages.append(str(message))
