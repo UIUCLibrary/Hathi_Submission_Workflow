@@ -18,7 +18,7 @@
     </Directory>
     <DirectoryRef Id="ApplicationProgramsFolder">
       <Component Id="ApplicationShortcut" Guid="EC6B8F15-14F2-4B92-8C23-A0CADF0B974D">
-        <Shortcut Id="ApplicationStartMenuShortcut" Name="HathiTrust Submission Workflow" Description="My descriptions" Target="[INSTALLFOLDER]pythonw.exe" WorkingDirectory="APPLICATIONROOTDIRECTORY" Arguments="-m hsw C:\Users\Public"/>
+        <Shortcut Id="ApplicationStartMenuShortcut" Name="HathiTrust Submission Workflow" Description="My descriptions" Target="[INSTALLFOLDER]pythonw.exe" WorkingDirectory="APPLICATIONROOTDIRECTORY" Arguments="-m hsw"/>
         <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall"/>
         <RegistryValue Root="HKCU" Key="Software\UIUCLibrary\HathiTrustSubmissionWorkflow" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
       </Component>
