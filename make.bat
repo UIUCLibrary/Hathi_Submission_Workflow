@@ -64,16 +64,17 @@ goto :eof
     if exist ".env" call .env\Scripts\activate.bat
     call "%vs140comntools%..\..\VC\vcvarsall.bat" x86_amd64
     nuget install windows_build\packages.config -OutputDirectory build\nugetpackages
-    MSBuild windows_build\make.proj /t:msi /p:ProjectRoot="%CD%
+    MSBuild make.pyproj /t:msi /p:ProjectRoot="%CD%
     endlocal
 
 goto :eof
 
 :clean
     echo Calling clean for Python
-    if exist ".env" call .env\Scripts\activate.bat
-    python setup.py clean
     setlocal
+	if exist ".env" call .env\Scripts\activate.bat
+    python setup.py clean
+    
     set "VSCMD_START_DIR=%CD%"
     call "%vs140comntools%..\..\VC\vcvarsall.bat" x86_amd64
     MSBuild windows_build\make.proj /t:Clean /p:ProjectRoot=%CD%
