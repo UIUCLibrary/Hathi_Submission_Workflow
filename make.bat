@@ -1,16 +1,17 @@
 @echo off
 
 
-if [%1] == []               goto main
-if "%1" == "install-dev"    goto install-dev
-if "%1" == "gui"            goto gui
-if "%1" == "docs"           goto docs
-if "%1" == "venv"           goto venv
-if "%1" == "venvclean"      goto venvclean
-if "%1" == "test"           goto test
-if "%1" == "release"        goto release
-if "%1" == "clean"          goto clean
-if "%1" == "help"           goto help
+if [%1] == []                goto main
+if "%~1" == "install-dev"    goto install-dev
+if "%~1" == "gui"            goto gui
+if "%~1" == "docs"           goto docs
+if "%~1" == "venv"           goto venv
+if "%~1" == "venvclean"      goto venvclean
+if "%~1" == "test"           goto test
+if "%~1" == "release"        goto release
+if "%~1" == "clean"          goto clean
+if "%~1" == "help"           goto help
+goto :error %*
 
 EXIT /B 0
 
@@ -32,15 +33,15 @@ goto :eof
 goto :eof
 
 :gui
-setlocal
-    echo Converting Qt .ui files into Python files
+    setlocal
+    echo Converting Qt5 .ui files located in the ./ui path into .py files:
     for %%f in (
      ui/*.ui ) do (
-        echo  %%~nf
+        echo     %%~nf
         pyuic5 ui\%%f -o hsw\ui\%%~nf.py
 
     )
-endlocal
+    endlocal
 goto :eof
 
 :install-dev
@@ -58,10 +59,17 @@ goto :eof
 
 :venv
     if exist ".env" echo "%CD%\.env" folder already exists. To activate virtualenv, use .env\Scripts\activate.bat & goto :eof
+
     echo Creating a local virtualenv in "%CD%\.env"
     setlocal
+
+    REM Create a new virtualenv in the .env path
     py -m venv .env
+
+    REM activate the virtualenv
     call .env\Scripts\activate.bat
+
+    REM Install development requirements inside the newly created virtualenv
     pip install -r requirements.txt
     endlocal
 goto :eof
@@ -73,33 +81,68 @@ goto :eof
 :docs
     echo Creating docs
     setlocal
+
+    REM if the virtualenv doesn't already exists, create it first
     if exist ".env" call .env\Scripts\activate.bat
+
+    REM Use the custom build_sphinx target to generate the documentations
     python setup.py build_sphinx
+
     endlocal
 goto :eof
 
 :release
     echo Creating standalone release
+
     setlocal
     set "VSCMD_START_DIR=%CD%"
+
+    REM if the virtualenv doesn't already exists, create it first
     if not exist ".env" call :venv
-    REM call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
+
+    REM Load the virtualenv
     if exist ".env" call .env\Scripts\activate.bat
+
+    REM Run with the x64 environment
     call "%vs140comntools%..\..\VC\vcvarsall.bat" x86_amd64
+
+    REM install required Nuget packages
     nuget install windows_build\packages.config -OutputDirectory build\nugetpackages
-    MSBuild release.pyproj /t:msi /p:ProjectRoot="%CD%
+
+    REM Run the MSBuild script for creating the msi
+    MSBuild release.pyproj /nologo /t:msi /p:ProjectRoot="%CD%
+
+    echo New msi package generated in %CD%\dist\
     endlocal
 
 goto :eof
 
 :clean
-    echo Calling clean for Python
     setlocal
 	if exist ".env" call .env\Scripts\activate.bat
     python setup.py clean --all
     
+    REM Run with the x64 environment
     set "VSCMD_START_DIR=%CD%"
     call "%vs140comntools%..\..\VC\vcvarsall.bat" x86_amd64
-    MSBuild release.pyproj /t:Clean /p:ProjectRoot=%CD%
+    MSBuild /nologo release.pyproj /t:Clean /p:ProjectRoot=%CD%
+
+    REM Delete any nugetpackages used to build a standalone release
+    if exist "build\nugetpackages" (
+        echo Deleting local nuget packages
+        rmdir /s /q build\nugetpackages
+    )
+
+    REM Remove any generated documentation
+    if exist "docs\build\" (
+        echo Deleting generated package documentation
+        rmdir /s /q docs\build
+    )
+
     endlocal
+goto :eof
+
+:error
+    echo Unknown option: %*
+    call :help
 goto :eof
