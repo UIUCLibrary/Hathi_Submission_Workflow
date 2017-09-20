@@ -1,43 +1,54 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:util="http://schemas.microsoft.com/wix/UtilExtension"     >
-	<Product Id="*" Name="HathiSubmitWorkflow" Language="1033" Version="$(var.WiXProductVersion)" Manufacturer="UIUC Library" UpgradeCode="807cb2d3-6fa5-49ea-a5ed-402d72d2d0db">
-		<Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" Platform="x64"/>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+    <Product Id="*" Name="HathiSubmitWorkflow" Language="1033" Version="$(var.WiXProductVersion)"
+             Manufacturer="UIUC Library" UpgradeCode="807cb2d3-6fa5-49ea-a5ed-402d72d2d0db">
+        <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" Platform="x64"/>
 
-		<MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
-		<MediaTemplate EmbedCab="yes"/>
-	  <UIRef Id="WixUI_FeatureTree" />
-    <WixVariable Id="WixUILicenseRtf" Value="LICENSE.rtf"/>
-	  <Directory Id="TARGETDIR" Name="SourceDir">
-	    <Directory Id="ProgramFiles64Folder">
-	      <Directory Id="INSTALLFOLDER" Name="HathiSubmitWorkflow" />
-	    </Directory>
-      <Directory Id="ProgramMenuFolder">
-        <Directory Id="ApplicationProgramsFolder" Name="Hathi"/>
-      </Directory>
+        <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed."/>
+        <MediaTemplate EmbedCab="yes"/>
+        <UIRef Id="WixUI_FeatureTree"/>
+        <WixVariable Id="WixUILicenseRtf" Value="LICENSE.rtf"/>
+        <Directory Id="TARGETDIR" Name="SourceDir">
+            <Directory Id="ProgramFiles64Folder">
+                <Directory Id="INSTALLFOLDER" Name="HathiSubmitWorkflow">
+                    <Directory Id="TestsDIR" Name="tests"/>
+                </Directory>
+            </Directory>
+            <Directory Id="ProgramMenuFolder">
+                <Directory Id="ApplicationProgramsFolder" Name="Hathi"/>
+            </Directory>
 
-    </Directory>
-    <DirectoryRef Id="ApplicationProgramsFolder">
-      <Component Id="ApplicationShortcut" Guid="EC6B8F15-14F2-4B92-8C23-A0CADF0B974D">
-        <Shortcut Id="ApplicationStartMenuShortcut" Name="HathiTrust Submission Workflow" Description="My descriptions" Target="[INSTALLFOLDER]pythonw.exe" WorkingDirectory="APPLICATIONROOTDIRECTORY" Arguments="-m hsw"/>
-        <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall"/>
-        <RegistryValue Root="HKCU" Key="Software\UIUCLibrary\HathiTrustSubmissionWorkflow" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
-      </Component>
-    </DirectoryRef>
+        </Directory>
+        <DirectoryRef Id="ApplicationProgramsFolder">
+            <Component Id="ApplicationShortcut" Guid="EC6B8F15-14F2-4B92-8C23-A0CADF0B974D">
+                <Shortcut Id="ApplicationStartMenuShortcut" Name="HathiTrust Submission Workflow"
+                          Description="My descriptions" Target="[INSTALLFOLDER]pythonw.exe"
+                          WorkingDirectory="APPLICATIONROOTDIRECTORY" Arguments="-m hsw"/>
+                <Shortcut Id="DocumentationStartMenuShortcut" Name="Documentation"
+                          Description="My descriptions" Target="[INSTALLFOLDER]\docs\html\index.html"/>
+                <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall"/>
+                <RegistryValue Root="HKCU" Key="Software\UIUCLibrary\HathiTrustSubmissionWorkflow" Name="installed"
+                               Type="integer" Value="1" KeyPath="yes"/>
+            </Component>
 
-<!--	  <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">-->
-<!--      -->
-<!--~1~	    ~2~ TODO: Remove the comments around this Component element and the ComponentRef below in order to add resources to this installer. @2@@1@-->
-<!--~1~	    ~2~ <Component Id="ProductComponent"> @2@@1@-->
-<!--~1~	    ~2~ TODO: Insert files, registry keys, and other resources here. @2@@1@-->
-<!--~1~	    ~2~ </Component> @2@@1@-->
-<!--	  </ComponentGroup>-->
+        </DirectoryRef>
 
-    <Feature Id="ProductFeature" Title="HathiSubmitWorkflow" Level="1">
-			<ComponentGroupRef Id="ProductComponents" />
-      <ComponentRef Id="ApplicationShortcut"/>
-		</Feature>
-	</Product>
+        <!--	  <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">-->
+        <!--      -->
+        <!--~1~	    ~2~ TODO: Remove the comments around this Component element and the ComponentRef below in order to add resources to this installer. @2@@1@-->
+        <!--~1~	    ~2~ <Component Id="ProductComponent"> @2@@1@-->
+        <!--~1~	    ~2~ TODO: Insert files, registry keys, and other resources here. @2@@1@-->
+        <!--~1~	    ~2~ </Component> @2@@1@-->
+        <!--	  </ComponentGroup>-->
 
+        <Feature Id="ProductFeature" Title="HathiSubmitWorkflow" Level="1">
+            <ComponentGroupRef Id="ProductComponents"/>
+            <ComponentRef Id="ApplicationShortcut"/>
+        </Feature>
+        <!--<Feature Id="UnitTestsFeature" Title="Automated Tests" Level="1">-->
+        <!---->
+        <!--</Feature>-->
+    </Product>
 
 
 </Wix>
