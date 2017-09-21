@@ -42,7 +42,8 @@ extensions = [
     'sphinx.ext.doctest',
     'sphinx.ext.coverage',
     'sphinx.ext.githubpages',
-    'sphinx.ext.napoleon'
+    'sphinx.ext.napoleon',
+    'sphinx.ext.graphviz'
 ]
 napoleon_google_docstring = True
 napoleon_numpy_docstring = True
