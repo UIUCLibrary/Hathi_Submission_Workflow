@@ -18,13 +18,11 @@ Decision Tree
         select_package_root-> "brittlebooks_path"[dir=none,weight=1, label="Selected Brittlebooks Workflow"];
         "brittlebooks_path" ->  process_prep -> process_validate -> select_output_folder -> process_zip ->end ;
 
-        # Middle Nodes
         "DS_selected" [shape=diamond,style=filled,label="",height=.1,width=.1]
         "DS_path" [shape=diamond,style=filled,label="",height=.1,width=.1]
         "brittlebooks_selected" [shape=diamond,style=filled,label="",height=.1,width=.1]
         "brittlebooks_path" [shape=diamond,style=filled,label="",height=.1,width=.1]
 
-        # Nodes
         start [label="Start App"]
         workflow_selection [label="User selects workflow\nfrom options", shape=diamond]
         select_package_root [label="User selects root folder\nlocation of packages",shape=box]
@@ -36,7 +34,6 @@ Decision Tree
         end [label="End App"]
 
 
-        # Options:
         nodesep=1.50;
 
         {rank=same;brittlebooks_path;DS_path}
