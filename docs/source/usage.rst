@@ -4,3 +4,5 @@ Usage
 =====
 
 .. include:: usageGUI.rst
+
+.. include:: tree.rst
