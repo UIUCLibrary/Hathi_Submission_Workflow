@@ -32,7 +32,7 @@ setup(
     author=metadata["__author__"],
     author_email=metadata["__author_email__"],
     description=metadata["__description__"],
-    install_requires=["pyqt5"],
+    install_requires=["pyqt5", "pyhathiprep", "HathiValidate", "HathiZip"],
     long_description=readme,
     test_suite="tests",
     setup_requires=[
@@ -44,7 +44,7 @@ setup(
     },
     tests_require=['pytest'],
     entry_points={
-        "console_scripts": [
+        "gui_scripts": [
             'hsw = hsw.__main__:main'
         ]
     },
