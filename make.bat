@@ -111,8 +111,6 @@ goto :eof
 
     REM Run the MSBuild script for creating the msi
     MSBuild release.pyproj /nologo /t:msi /p:ProjectRoot="%CD%
-
-    echo New msi package generated in %CD%\dist\
     endlocal
 
 goto :eof
