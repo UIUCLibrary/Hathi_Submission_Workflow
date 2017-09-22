@@ -1,5 +1,5 @@
 #!groovy
-@Library("ds-utils")
+@Library("ds-utils") // Uses library from https://github.com/UIUCLibrary/Jenkins_utils
 import org.ds.*
 
 pipeline {
