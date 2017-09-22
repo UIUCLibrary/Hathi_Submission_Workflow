@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Project 
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <ItemGroup>
+        <PythonDependencies Include="git+https://github.com/UIUCLibrary/HathiValidate.git#egg=HathiValidate"/>
+        <PythonDependencies Include="git+https://github.com/UIUCLibrary/pyhathiprep.git#egg=pyhathiprep"/>
+        <PythonDependencies Include="git+https://github.com/UIUCLibrary/HathiZip.git#egg=HathiZip"/>
+        <PythonDependencies Include="PyQt5"/>
+    </ItemGroup>
+
+</Project>
