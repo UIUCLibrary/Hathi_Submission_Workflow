@@ -121,6 +121,14 @@ class SelectRoot(QtHathiWizardPage):
                 error_message.setInformativeText(error_text)
         return False
 
+    def cleanupPage(self):
+        del self.data['root']
+
+    def nextId(self):
+        if self.data['workflow'] == "DS":
+            return 3
+        else:
+            return 4
 
 class PackageBrowser(QtHathiWizardPage):
     page_title = "Package Browser"
@@ -170,7 +178,7 @@ class PackageBrowser(QtHathiWizardPage):
         self.data["packages"] = self.model._packages
         return True
 
-
+# FIXME: HathiTrust Brittlebooks skips previous step so there no data has been set yet
 class Prep(HathiWizardProcess):
     page_title = "Prep"
 
@@ -239,12 +247,13 @@ class WorkflowSelection(QtHathiWizardPage):
         self.selection_layout.addWidget(self.option1)
 
         self.option2 = QtWidgets.QRadioButton(self)
-        self.option2.setText("Vendors")
+        self.option2.setText("Brittlebooks")
         self.option_group.addButton(self.option2)
         self.option_group.buttonToggled.connect(self.updated)
         self.selection_layout.addWidget(self.option2)
 
         self.my_layout.addWidget(self.workflow_box)
+
 
     def updated(self, selection: QtWidgets.QRadioButton):
         if selection.isChecked():
