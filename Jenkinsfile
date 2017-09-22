@@ -1,5 +1,5 @@
 #!groovy
-@Library("ds-utils")
+@Library("ds-utils") // Uses library from https://github.com/UIUCLibrary/Jenkins_utils
 import org.ds.*
 
 pipeline {
@@ -13,7 +13,8 @@ pipeline {
         booleanParam(name: "UNIT_TESTS", defaultValue: true, description: "Run automated unit tests")
         booleanParam(name: "ADDITIONAL_TESTS", defaultValue: true, description: "Run additional tests")
         booleanParam(name: "PACKAGE", defaultValue: true, description: "Create a package")
-        booleanParam(name: "DEPLOY", defaultValue: false, description: "Create SCCM deployment package")
+        booleanParam(name: "DEPLOY_SCCM", defaultValue: false, description: "Create SCCM deployment package")
+        booleanParam(name: "DEPLOY_DEVPI", defaultValue: true, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
         booleanParam(name: "UPDATE_DOCS", defaultValue: false, description: "Update online documentation")
         string(name: 'URL_SUBFOLDER', defaultValue: "hathi_submission_workflow", description: 'The directory that the docs should be saved under')
     }
@@ -125,43 +126,40 @@ pipeline {
 
             steps {
                 parallel(
-                        "Source and Wheel formats": {
+                        "Windows Standalone": {
                             node(label: "Windows") {
                                 deleteDir()
                                 unstash "Source"
-                                bat """${env.PYTHON3} -m venv .env
-                                        call .env/Scripts/activate.bat
-                                        pip install --upgrade pip setuptools
-                                        pip install -r requirements.txt
-                                        python setup.py bdist_wheel sdist
-                                    """
+                                bat "call make.bat release"
+//                                bat """${env.PYTHON3} -m venv .env
+//                                        call .env/Scripts/activate.bat
+//                                        pip install --upgrade pip setuptools
+//                                        pip install -r requirements.txt
+//                                        call make.bat release
+//                                       IF NOT %ERRORLEVEL% == 0 (
+//                                         echo ABORT: %ERRORLEVEL%
+//                                         exit /b %ERRORLEVEL%
+//                                       )
+//                                    """
+
+
+                                dir("dist") {
+                                    archiveArtifacts artifacts: "*.msi*", fingerprint: true
+                                    stash includes: "*.msi", name: "msi"
+                                }
+                            }
+                        }, "Windows Wheel": {
+                            node(label: "Windows") {
+                                deleteDir()
+                                unstash "Source"
+                                bat "${env.PYTHON3} setup.py bdist_wheel --universal"
                                 archiveArtifacts artifacts: "dist/**", fingerprint: true
                             }
                         },
-                        "Windows CX_Freeze MSI": {
-                            node(label: "Windows") {
-                                deleteDir()
-                                unstash "Source"
-                                bat """${env.PYTHON3} -m venv .env
-                                       call .env/Scripts/activate.bat
-                                       pip install -r requirements.txt
-                                       python cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir build/msi
-                                       call .env/Scripts/deactivate.bat
-                                    """
-                                bat "build\\msi\\hsw.exe --pytest"
-                                dir("dist") {
-                                    stash includes: "*.msi", name: "msi"
-                                }
 
-                            }
-                            node(label: "Windows") {
-                                deleteDir()
-                                git url: 'https://github.com/UIUCLibrary/ValidateMSI.git'
-                                unstash "msi"
-                                bat "call validate.bat -i"
-                                archiveArtifacts artifacts: "*.msi", fingerprint: true
-                            }
-                        },
+                        "Source Release": {
+                            createSourceRelease(env.PYTHON3, "Source")
+                        }
                 )
             }
         }
@@ -169,7 +167,7 @@ pipeline {
         stage("Deploy - Staging") {
             agent any
             when {
-                expression { params.DEPLOY == true && params.PACKAGE == true }
+                expression { params.DEPLOY_SCCM == true && params.PACKAGE == true }
             }
 
             steps {
@@ -181,7 +179,7 @@ pipeline {
         stage("Deploy - SCCM upload") {
             agent any
             when {
-                expression { params.DEPLOY == true && params.PACKAGE == true }
+                expression { params.DEPLOY_SCCM == true && params.PACKAGE == true }
             }
 
             steps {
@@ -198,6 +196,36 @@ pipeline {
                         archiveArtifacts artifacts: "deployment_request.txt"
                     }
                 }
+            }
+        }
+        stage("Deploying to Devpi") {
+            agent {
+                node {
+                    label 'Windows'
+                }
+            }
+            when {
+                expression { params.DEPLOY_DEVPI == true }
+            }
+            steps {
+                deleteDir()
+                unstash "Source"
+                bat "devpi use http://devpy.library.illinois.edu"
+                withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+                    bat "devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                    bat "devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}"
+                    script {
+                        try{
+                            bat "devpi upload --with-docs"
+
+                        } catch (exc) {
+                            echo "Unable to upload to devpi with docs. Trying without"
+                            bat "devpi upload"
+                        }
+                    }
+                    bat "devpi test hsw"
+                }
+
             }
         }
         stage("Update online documentation") {

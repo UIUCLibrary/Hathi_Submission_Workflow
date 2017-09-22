@@ -1,5 +1,5 @@
 # Include the license file
-include LICENSE tox.ini README.rst
+include LICENSE tox.ini README.rst requirements.txt
 
 recursive-include tests *
 recursive-include docs *

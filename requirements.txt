@@ -1,11 +1,10 @@
 mypy
-cx_Freeze
 wheel
 sphinx
 pytest
 pytest-runner
-six
-appdirs
-packaging
 tox
 PyQt5
+-e git://github.com/UIUCLibrary/pyhathiprep.git#egg=pyhathiprep
+-e git://github.com/UIUCLibrary/HathiValidate.git#egg=HathiValidate
+-e git://github.com/UIUCLibrary/HathiZip.git#egg=HathiZip
