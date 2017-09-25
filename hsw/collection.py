@@ -2,6 +2,8 @@ import abc
 import collections
 import typing
 
+import os
+
 
 class AbsPackageComponent(metaclass=abc.ABCMeta):
     def __init__(self, parent=None) -> None:
@@ -15,6 +17,15 @@ class AbsPackageComponent(metaclass=abc.ABCMeta):
 
     def add_to_parent(self, child):
         self.parent.children.append(child)
+
+    def __len__(self):
+        return len(self.children)
+
+    def __getitem__(self, item)->typing.Type["AbsPackageComponent"]:
+        return self.children[item]
+
+    def __iter__(self):
+        yield self.children
 
     @property
     @abc.abstractmethod
@@ -78,3 +89,13 @@ class Instantiation(AbsPackageComponent):
 
     def add_to_parent(self, child):
         self.parent.instantiations[self.category] = child
+
+
+def build_bb_collection(root) -> Collection:
+    new_collection = Collection(root)
+    for directory in filter(lambda i: i.is_dir(), os.scandir(root)):
+        new_package = Package(parent=new_collection)
+        new_package.component_metadata['path'] = directory
+    #     TODO: Add items to the package
+    #     TODO: Add instances to the items
+    return new_collection
