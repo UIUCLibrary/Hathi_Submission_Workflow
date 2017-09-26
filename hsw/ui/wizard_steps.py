@@ -1,4 +1,5 @@
 import abc
+import logging
 import os
 
 import datetime
@@ -25,10 +26,11 @@ class QtHathiWizardPage(QtWidgets.QWizardPage):
         self.valid = True
 
     def initializePage(self):
+        logger = logging.getLogger(__name__)
         super().initializePage()
         self.valid = True
-        # TODO: remove the debug printing
-        print(self.data)
+        # print(self.data)
+        logger.debug(self.data)
 
     @classmethod
     def update_title(cls, value: "QtHathiWizardPage"):
