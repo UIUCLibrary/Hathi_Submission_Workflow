@@ -1,4 +1,6 @@
 import os
+from pprint import pprint
+
 import pytest
 from hsw import collection
 
@@ -66,3 +68,27 @@ def test_collection_iter(bb_collection):
 def test_collection_index(bb_collection):
     foo = bb_collection[0]
     assert foo.metadata
+
+
+def test_package_size(bb_collection):
+    my_package_1251150 = bb_collection[0]
+    assert len(my_package_1251150) == 10
+
+
+def test_item_size(bb_collection):
+    my_package_1251150 = bb_collection[0]
+    first_item = my_package_1251150[0]
+    assert len(first_item) == 1
+
+
+def test_item_metadata_name(bb_collection):
+    my_package_1251150 = bb_collection[0]
+    first_item = my_package_1251150[0]
+    assert first_item.metadata["item_name"] == "00000001"
+
+def test_item_instance(bb_collection):
+    my_package_1251150 = bb_collection[0]
+    first_item = my_package_1251150[0]
+    access_instance = first_item.instantiations["access"]
+    pprint(dict(access_instance.metadata))
+    assert access_instance.metadata['category'] == "access"
