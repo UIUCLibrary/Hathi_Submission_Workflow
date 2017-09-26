@@ -2,11 +2,11 @@ import os
 from pprint import pprint
 
 import pytest
-from hsw import collection
+from hsw import collection, collection_builder
 
 
 @pytest.fixture(scope="session")
-def bb_collection(tmpdir_factory):
+def bb_collection_root(tmpdir_factory):
     brittle_books_packages = [
         "1251150",
     ]
@@ -49,47 +49,62 @@ def bb_collection(tmpdir_factory):
         new_test_item = tests_files_dir.join(test_file)
         with open(new_test_item, "w") as f:
             pass
-    return collection.build_bb_collection(str(tests_files_dir))
+    return str(tests_files_dir)
+    # return collection.build_bb_collection(str(tests_files_dir))
 
 
-def test_build_bb_collection(bb_collection):
-    assert isinstance(bb_collection, collection.Collection)
+def test_build_bb_collection(bb_collection_root):
+    my_collection = collection.build_bb_collection(str(bb_collection_root))
+    assert isinstance(my_collection, collection.Collection)
 
 
-def test_collection_size(bb_collection):
-    assert len(bb_collection) == 1
+def test_collection_size(bb_collection_root):
+    my_collection = collection.build_bb_collection(str(bb_collection_root))
+    assert len(my_collection) == 1
 
 
-def test_collection_iter(bb_collection):
-    for i in bb_collection:
+def test_collection_iter(bb_collection_root):
+    my_collection = collection.build_bb_collection(str(bb_collection_root))
+    for i in my_collection:
         pass
 
 
-def test_collection_index(bb_collection):
-    foo = bb_collection[0]
-    assert foo.metadata
+def test_collection_index(bb_collection_root):
+    my_collection = collection.build_bb_collection(str(bb_collection_root))
+    foo = my_collection[0]
+    assert foo is not None
 
 
-def test_package_size(bb_collection):
-    my_package_1251150 = bb_collection[0]
+def test_package_size(bb_collection_root):
+    my_collection = collection.build_bb_collection(str(bb_collection_root))
+    my_package_1251150 = my_collection[0]
     assert len(my_package_1251150) == 10
 
 
-def test_item_size(bb_collection):
-    my_package_1251150 = bb_collection[0]
+def test_item_size(bb_collection_root):
+    my_collection = collection.build_bb_collection(str(bb_collection_root))
+    my_package_1251150 = my_collection[0]
     first_item = my_package_1251150[0]
     assert len(first_item) == 1
 
 
-def test_item_metadata_name(bb_collection):
-    my_package_1251150 = bb_collection[0]
+def test_item_metadata_name(bb_collection_root):
+    my_collection = collection.build_bb_collection(str(bb_collection_root))
+    my_package_1251150 = my_collection[0]
     first_item = my_package_1251150[0]
     assert first_item.metadata["item_name"] == "00000001"
 
 
-def test_item_instance(bb_collection):
-    my_package_1251150 = bb_collection[0]
+def test_item_instance(bb_collection_root):
+    my_collection = collection.build_bb_collection(str(bb_collection_root))
+    my_package_1251150 = my_collection[0]
     first_item = my_package_1251150[0]
     access_instance = first_item.instantiations["access"]
-    pprint(dict(access_instance.metadata))
     assert access_instance.metadata['category'] == "access"
+
+
+def test_bb_collection_strat(bb_collection_root):
+    strategy = collection_builder.BrittleBooksStrategy()
+    package_builder = collection_builder.BuildPackage(strategy)
+    my_collection = package_builder.build_package(bb_collection_root)
+    assert isinstance(my_collection, collection.Collection)
