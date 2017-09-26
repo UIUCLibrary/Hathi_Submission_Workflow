@@ -100,6 +100,7 @@ def ds_collection_root(tmpdir_factory):
 def bb_collection_root(tmpdir_factory):
     brittle_books_packages = [
         "1251150",
+        "1790923"
     ]
     brittle_books_package_files = [
         os.path.join("1251150", "00000001.jp2"),
@@ -131,7 +132,19 @@ def bb_collection_root(tmpdir_factory):
         os.path.join("1251150", "00000009.xml"),
         os.path.join("1251150", "00000010.jp2"),
         os.path.join("1251150", "00000010.txt"),
-        os.path.join("1251150", "00000010.xml")
+        os.path.join("1251150", "00000010.xml"),
+        os.path.join("1790923", "00000001.jp2"),
+        os.path.join("1790923", "00000001.txt"),
+        os.path.join("1790923", "00000001.xml"),
+        os.path.join("1790923", "00000002.jp2"),
+        os.path.join("1790923", "00000002.txt"),
+        os.path.join("1790923", "00000002.xml"),
+        os.path.join("1790923", "00000003.jp2"),
+        os.path.join("1790923", "00000003.txt"),
+        os.path.join("1790923", "00000003.xml"),
+        os.path.join("1790923", "00000004.jp2"),
+        os.path.join("1790923", "00000004.txt"),
+        os.path.join("1790923", "00000004.xml"),
     ]
     tests_files_dir = tmpdir_factory.mktemp("BB_Test")
     for package_name in brittle_books_packages:
@@ -150,7 +163,7 @@ def test_build_bb_collection(bb_collection_root):
 
 def test_collection_size(bb_collection_root):
     my_collection = hsw.collection_builder.build_bb_collection(str(bb_collection_root))
-    assert len(my_collection) == 1
+    assert len(my_collection) == 2
 
 
 def test_collection_iter(bb_collection_root):
