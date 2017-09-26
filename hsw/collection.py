@@ -21,7 +21,7 @@ class AbsPackageComponent(metaclass=abc.ABCMeta):
     def __len__(self):
         return len(self.children)
 
-    def __getitem__(self, item)->typing.Type["AbsPackageComponent"]:
+    def __getitem__(self, item) -> typing.Type["AbsPackageComponent"]:
         return self.children[item]
 
     def __iter__(self):
@@ -34,7 +34,6 @@ class AbsPackageComponent(metaclass=abc.ABCMeta):
 
     def _gen_combined_metadata(self) -> typing.ChainMap[str, str]:
         if self.parent:
-            print("Parent")
             metadata = collections.ChainMap(self.component_metadata, self.parent.metadata)
         else:
             metadata = collections.ChainMap(self.component_metadata)
@@ -81,6 +80,7 @@ class Instantiation(AbsPackageComponent):
     def __init__(self, category="generic", parent: typing.Optional[Item] = None) -> None:
         self.category = category
         super().__init__(parent)
+        self.component_metadata['category'] = category
         self.files: typing.List[str] = []
 
     @property
@@ -91,11 +91,26 @@ class Instantiation(AbsPackageComponent):
         self.parent.instantiations[self.category] = child
 
 
+def build_bb_instance(new_item, path, name):
+    new_instantiation = Instantiation(category="access",parent=new_item)
+    for file in filter(lambda i: i.is_file(), os.scandir(path)):
+        if os.path.splitext(os.path.basename(file))[0] == name:
+            new_instantiation.files.append(file.path)
+
+
+def build_bb_package(new_package, path):
+    files = set(map(lambda item: os.path.splitext(item)[0], os.listdir(path)))
+    for unique_item in sorted(files):
+        new_item = Item(parent=new_package)
+        new_item.component_metadata["item_name"] = unique_item
+        build_bb_instance(new_item, name=unique_item, path=path)
+
+
 def build_bb_collection(root) -> Collection:
     new_collection = Collection(root)
     for directory in filter(lambda i: i.is_dir(), os.scandir(root)):
         new_package = Package(parent=new_collection)
-        new_package.component_metadata['path'] = directory
-    #     TODO: Add items to the package
-    #     TODO: Add instances to the items
+        new_package.component_metadata['path'] = directory.path
+        new_package.component_metadata["package_type"] = "Brittle Books HathiTrust Submission Package"
+        build_bb_package(new_package, path=directory.path)
     return new_collection
