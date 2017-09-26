@@ -86,6 +86,7 @@ def test_item_metadata_name(bb_collection):
     first_item = my_package_1251150[0]
     assert first_item.metadata["item_name"] == "00000001"
 
+
 def test_item_instance(bb_collection):
     my_package_1251150 = bb_collection[0]
     first_item = my_package_1251150[0]
