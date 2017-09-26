@@ -3,6 +3,8 @@ import os
 
 import datetime
 from PyQt5 import QtWidgets, QtGui, QtCore
+
+from . import wizard
 from . import message_logger
 from hsw.package_list import PackagesList
 from . import processing
@@ -11,8 +13,8 @@ from .packages_model import PackageModel
 
 
 class QtHathiWizardPage(QtWidgets.QWizardPage):
-    page_title = None           # type: str
-    help_information = None     # type: str
+    page_title = None  # type: str
+    help_information = None  # type: str
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -58,10 +60,9 @@ class HathiWizardProcess(QtHathiWizardPage):
 
 
 
-    # def cleanupPage(self):
-    #     super().cleanupPage()
-    #     self.logger.clean()
-
+        # def cleanupPage(self):
+        #     super().cleanupPage()
+        #     self.logger.clean()
 
 
 ###############################################################################
@@ -122,13 +123,15 @@ class SelectRoot(QtHathiWizardPage):
         return False
 
     def cleanupPage(self):
-        del self.data['root']
+        if "root" in self.data:
+            del self.data['root']
 
     def nextId(self):
         if self.data['workflow'] == "DS":
-            return 3
+            return wizard.HathiWizardPages['PackageBrowser'].index
         else:
-            return 4
+            return wizard.HathiWizardPages['Prep'].index
+
 
 class PackageBrowser(QtHathiWizardPage):
     page_title = "Package Browser"
@@ -178,13 +181,14 @@ class PackageBrowser(QtHathiWizardPage):
         self.data["packages"] = self.model._packages
         return True
 
+
 # FIXME: HathiTrust Brittlebooks skips previous step so there no data has been set yet
 class Prep(HathiWizardProcess):
     page_title = "Prep"
 
     def process(self):
         self.logger.log("{} Processing".format(datetime.datetime.now()))
-        foo = processing.ListProgress(self, self.data['packages']) # ,
+        foo = processing.ListProgress(self, self.data['packages'])  # ,
         foo.logger = lambda x: self.logger.log("Prepping: {}".format(x))
         try:
             foo.process()
@@ -220,7 +224,7 @@ class Zip(HathiWizardProcess):
     def process(self):
         foo = processing.ListProgress(self, self.data['packages'])
         foo.logger = lambda x: self.logger.log("Zipping : {}".format(x))
-                                      # lambda l: self.logger.log("{}{}".format(datetime.datetime.now(), l)))
+        # lambda l: self.logger.log("{}{}".format(datetime.datetime.now(), l)))
         try:
             foo.process()
         except processing.ProcessCanceled:
@@ -253,7 +257,6 @@ class WorkflowSelection(QtHathiWizardPage):
         self.selection_layout.addWidget(self.option2)
 
         self.my_layout.addWidget(self.workflow_box)
-
 
     def updated(self, selection: QtWidgets.QRadioButton):
         if selection.isChecked():
