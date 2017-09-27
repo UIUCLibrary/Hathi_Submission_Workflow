@@ -3,35 +3,37 @@ import logging
 import os
 import typing
 
-from hsw.collection import Instantiation, Item, Collection, Package
+from hsw.collection import Instantiation, Item, Package, PackageObject
 from . import collection
 
 
 class AbsStrategy(metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def build_collection(self, root) -> collection.Collection:
+    def build_collection(self, root) -> collection.Package:
         pass
 
 
 class BrittleBooksStrategy(AbsStrategy):
-    def build_collection(self, root) -> collection.Collection:
+    def build_collection(self, root) -> collection.Package:
         # TODO inline this function
         return build_bb_collection(root)
 
 
 class DSStrategy(AbsStrategy):
-    def build_collection(self, root) -> collection.Collection:
-        new_collection = Collection(root)
+    def build_collection(self, root) -> collection.Package:
+        new_collection = Package(root)
         new_collection.component_metadata["path"] = root
         new_collection.component_metadata["package_type"] = "DS HathiTrust Submission Package"
         # for folder in filter(lambda i: i.is_dir(), os.scandir(root)):
-        self._build_ds_packages(parent_collection=new_collection, path=root)
+        self._build_ds_object(parent_collection=new_collection, path=root)
         return new_collection
 
-    def _build_ds_packages(self, parent_collection, path):
+    def _build_ds_object(self, parent_collection, path):
         for folder in filter(lambda i: i.is_dir(), os.scandir(path)):
-            new_package = Package(parent=parent_collection)
+            new_package = PackageObject(parent=parent_collection)
             new_package.component_metadata["path"] = folder.path
+            new_package.component_metadata["id"] = folder.name
+            new_package.component_metadata["title_page"] = None
             self._build_ds_items(new_package, path=folder.path)
 
     def _build_ds_items(self, package, path):
@@ -75,13 +77,14 @@ def build_bb_package(new_package, path):
         build_bb_instance(new_item, name=unique_item, path=path)
 
 
-def build_bb_collection(root) -> Collection:
+def build_bb_collection(root) -> Package:
     logger = logging.getLogger(__name__)
-    new_collection = Collection(root)
+    new_collection = Package(root)
     for directory in filter(lambda i: i.is_dir(), os.scandir(root)):
         logger.debug("scanning {}".format(directory.path))
-        new_package = Package(parent=new_collection)
-        new_package.component_metadata['path'] = directory.path
-        new_package.component_metadata["package_type"] = "Brittle Books HathiTrust Submission Package"
-        build_bb_package(new_package, path=directory.path)
+        new_object = PackageObject(parent=new_collection)
+        new_object.component_metadata['path'] = directory.path
+        new_object.component_metadata["id"] = directory.name
+        new_object.component_metadata["package_type"] = "Brittle Books HathiTrust Submission Package"
+        build_bb_package(new_object, path=directory.path)
     return new_collection
