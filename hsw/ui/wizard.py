@@ -8,14 +8,22 @@ from collections import namedtuple
 HathiWizardPageSteps = namedtuple("HathiWizardPageSteps", ("index", "wizard_page"))
 
 HathiWizardPages = {
-    "Welcome": HathiWizardPageSteps(index=0, wizard_page=wizard_steps.Welcome),
-    "WorkflowSelection": HathiWizardPageSteps(index=1, wizard_page=wizard_steps.WorkflowSelection),
-    "SelectRoot": HathiWizardPageSteps(index=2, wizard_page=wizard_steps.SelectRoot),
-    "PackageBrowser": HathiWizardPageSteps(index=3, wizard_page=wizard_steps.PackageBrowser),
-    "Prep": HathiWizardPageSteps(index=4, wizard_page=wizard_steps.Prep),
-    "Validate": HathiWizardPageSteps(index=5, wizard_page=wizard_steps.Validate),
-    "Zip": HathiWizardPageSteps(index=6, wizard_page=wizard_steps.Zip),
-    "EndPage": HathiWizardPageSteps(index=7, wizard_page=wizard_steps.EndPage),
+    "Welcome":
+        HathiWizardPageSteps(index=0, wizard_page=wizard_steps.Welcome),
+    "WorkflowSelection":
+        HathiWizardPageSteps(index=1, wizard_page=wizard_steps.WorkflowSelection),
+    "SelectRoot":
+        HathiWizardPageSteps(index=2, wizard_page=wizard_steps.SelectRoot),
+    "PackageBrowser":
+        HathiWizardPageSteps(index=3, wizard_page=wizard_steps.PackageBrowser2),
+    "Prep":
+        HathiWizardPageSteps(index=4, wizard_page=wizard_steps.Prep),
+    "Validate":
+        HathiWizardPageSteps(index=5, wizard_page=wizard_steps.Validate),
+    "Zip":
+        HathiWizardPageSteps(index=6, wizard_page=wizard_steps.Zip),
+    "EndPage":
+        HathiWizardPageSteps(index=7, wizard_page=wizard_steps.EndPage),
 }
 
 class HathiWizard(QtWidgets.QWizard):
