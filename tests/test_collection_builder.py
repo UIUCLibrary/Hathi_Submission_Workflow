@@ -158,7 +158,7 @@ def bb_collection_root(tmpdir_factory):
 
 def test_build_bb_collection(bb_collection_root):
     my_collection = hsw.collection_builder.build_bb_collection(str(bb_collection_root))
-    assert isinstance(my_collection, collection.Collection)
+    assert isinstance(my_collection, collection.Package)
 
 
 def test_collection_size(bb_collection_root):
@@ -180,28 +180,35 @@ def test_collection_index(bb_collection_root):
 
 def test_package_size(bb_collection_root):
     my_collection = hsw.collection_builder.build_bb_collection(str(bb_collection_root))
-    my_package_1251150 = my_collection[0]
-    assert len(my_package_1251150) == 10
+    my_object = my_collection[0]
+    assert len(my_object) == 10
 
 
 def test_item_size(bb_collection_root):
     my_collection = hsw.collection_builder.build_bb_collection(str(bb_collection_root))
-    my_package_1251150 = my_collection[0]
-    first_item = my_package_1251150[0]
+    my_object = my_collection[0]
+    first_item = my_object[0]
     assert len(first_item) == 1
 
 
 def test_item_metadata_name(bb_collection_root):
-    my_collection = hsw.collection_builder.build_bb_collection(str(bb_collection_root))
-    my_package_1251150 = my_collection[0]
-    first_item = my_package_1251150[0]
+    my_package = hsw.collection_builder.build_bb_collection(str(bb_collection_root))
+    my_object = my_package[0]
+    first_item = my_object[0]
     assert first_item.metadata["item_name"] == "00000001"
+
+
+
+def test_object_metadata_name(bb_collection_root):
+    my_package = hsw.collection_builder.build_bb_collection(str(bb_collection_root))
+    my_object = my_package[0]
+    assert my_object.metadata['id'] == "1251150"
 
 
 def test_item_instance(bb_collection_root):
     my_collection = hsw.collection_builder.build_bb_collection(str(bb_collection_root))
-    my_package_1251150 = my_collection[0]
-    first_item = my_package_1251150[0]
+    my_object = my_collection[0]
+    first_item = my_object[0]
     access_instance = first_item.instantiations["access"]
     assert access_instance.metadata['category'] == "access"
 
@@ -210,46 +217,53 @@ def test_bb_collection_strat(bb_collection_root):
     strategy = collection_builder.BrittleBooksStrategy()
     package_builder = collection_builder.BuildPackage(strategy)
     my_collection = package_builder.build_package(bb_collection_root)
-    assert isinstance(my_collection, collection.Collection)
+    assert isinstance(my_collection, collection.Package)
 
 
 def test_ds_collection_strategy(ds_collection_root):
     strategy = collection_builder.DSStrategy()
     package_builder = collection_builder.BuildPackage(strategy)
     my_collection = package_builder.build_package(ds_collection_root)
-    assert isinstance(my_collection, collection.Collection)
-
-
-def test_ds_collection_len(ds_collection_root):
-    strategy = collection_builder.DSStrategy()
-    package_builder = collection_builder.BuildPackage(strategy)
-    my_collection = package_builder.build_package(ds_collection_root)
-    assert len(my_collection) == 3
+    assert isinstance(my_collection, collection.Package)
 
 
 def test_ds_package_len(ds_collection_root):
     strategy = collection_builder.DSStrategy()
     package_builder = collection_builder.BuildPackage(strategy)
     my_collection = package_builder.build_package(ds_collection_root)
-    my_package = my_collection[0]
-    assert len(my_package) == 8
+    assert len(my_collection) == 3
+
+
+def test_ds_object_len(ds_collection_root):
+    strategy = collection_builder.DSStrategy()
+    package_builder = collection_builder.BuildPackage(strategy)
+    my_collection = package_builder.build_package(ds_collection_root)
+    my_object = my_collection[0]
+    assert len(my_object) == 8
+
+def test_ds_object_id(ds_collection_root):
+    strategy = collection_builder.DSStrategy()
+    package_builder = collection_builder.BuildPackage(strategy)
+    my_collection = package_builder.build_package(ds_collection_root)
+    my_object = my_collection[0]
+    assert my_object.metadata['id'] == "1564651"
 
 
 def test_ds_item_len(ds_collection_root):
     strategy = collection_builder.DSStrategy()
     package_builder = collection_builder.BuildPackage(strategy)
     my_collection = package_builder.build_package(ds_collection_root)
-    my_package = my_collection[0]
-    my_item = my_package[0]
+    my_object = my_collection[0]
+    my_item = my_object[0]
     assert len(my_item) == 1
 
 
 def test_ds_instantiations(ds_collection_root):
     strategy = collection_builder.DSStrategy()
     package_builder = collection_builder.BuildPackage(strategy)
-    my_collection = package_builder.build_package(ds_collection_root)
-    my_package = my_collection[0]
-    my_item = my_package[0]
+    my_package = package_builder.build_package(ds_collection_root)
+    my_object = my_package[0]
+    my_item = my_object[0]
     my_instantiation = my_item.instantiations["access"]
     assert my_instantiation.metadata['category'] == "access"
     pprint(dict(my_instantiation.metadata))
