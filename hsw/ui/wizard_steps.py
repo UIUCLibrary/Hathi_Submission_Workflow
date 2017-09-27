@@ -4,6 +4,7 @@ import logging
 import os
 import typing
 import warnings
+from hsw import workflow
 import multiprocessing
 import threading
 import queue
@@ -11,7 +12,7 @@ import queue
 import sys
 from PyQt5 import QtWidgets, QtCore
 
-from hsw import collection_builder
+# from hsw import collection_builder
 from hsw.package_list import PackagesList
 from . import processing
 from . import wizard
@@ -165,12 +166,13 @@ class SelectRoot(QtHathiWizardPage):
 
     def build_package(self, root):
         if self.data['workflow'] == "DS":
-            workflow = collection_builder.DSStrategy()
+            workflow_strats = workflow.DSStrategy()
         elif self.data['workflow'] == "BrittleBooks":
-            workflow = collection_builder.BrittleBooksStrategy()
+            workflow_strats = workflow.BrittleBooksStrategy()
         else:
             raise Exception("Unknown workflow {}".format(self.data['workflow']))
-        package_builder = collection_builder.BuildPackage(workflow)
+        # package_builder = collection_builder.BuildPackage(workflow_strats)
+        package_builder = workflow.Workflow(workflow_strats)
         print("Loading")
         package_locator = LocatingPackagesDialog(package_builder, root)
         package_locator.exec_()
