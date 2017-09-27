@@ -23,7 +23,10 @@ class AbsPackageComponent(metaclass=abc.ABCMeta):
         return self.children[item]
 
     def __iter__(self):
-        yield self.children
+        return self.children.__iter__()
+
+    def __str__(self) -> str:
+        return "{} {}".format(super().__str__(), dict(self.metadata))
 
     @property
     @abc.abstractmethod
@@ -41,23 +44,20 @@ class AbsPackageComponent(metaclass=abc.ABCMeta):
     def init_local_metadata() -> dict:
         return dict()
 
-    def __str__(self) -> str:
-        return "{} {}".format(super().__str__(), dict(self.metadata))
 
-
-class Collection(AbsPackageComponent):
+class Package(AbsPackageComponent):
     def __init__(self, path=None, parent=None):
-        self.path = path
-        self.packages: typing.List[Package] = []
         super().__init__(parent)
+        self.path = path
+        self.objects: typing.List[PackageObject] = []
 
     @property
     def children(self):
-        return self.packages
+        return self.objects
 
 
-class Package(AbsPackageComponent):
-    def __init__(self, parent: typing.Optional[Collection] = None) -> None:
+class PackageObject(AbsPackageComponent):
+    def __init__(self, parent: typing.Optional[Package] = None) -> None:
         super().__init__(parent)
         self.package_files: typing.List[str] = []
         self.items: typing.List[Item] = []
@@ -68,7 +68,7 @@ class Package(AbsPackageComponent):
 
 
 class Item(AbsPackageComponent):
-    def __init__(self, parent: typing.Optional[Package] = None) -> None:
+    def __init__(self, parent: typing.Optional[PackageObject] = None) -> None:
         super().__init__(parent)
         self.instantiations = dict()  # type: typing.Dict[str, Instantiation]
 
@@ -90,5 +90,3 @@ class Instantiation(AbsPackageComponent):
 
     def add_to_parent(self, child):
         self.parent.instantiations[self.category] = child
-
-
