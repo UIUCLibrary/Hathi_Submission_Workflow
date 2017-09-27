@@ -1,3 +1,4 @@
+import warnings
 from time import sleep
 
 from PyQt5 import QtWidgets, QtCore
@@ -67,10 +68,12 @@ class DummyProgress(ProcessProgress):
         return self._counter
 
 
+
 class ListProgress(ProcessProgress):
     """Not to be used, mainly as an example"""
 
     def __init__(self, parent, items: list, logger=None) -> None:
+        warnings.warn("use ListProgress2", DeprecationWarning)
         self.items = items
         self.logger = logger or print
         super().__init__(parent)
@@ -89,4 +92,10 @@ class ListProgress(ProcessProgress):
         item = self.items[self._counter]
 
         self.logger(item.metadata["package_name"])
+        self._counter += 1
+class ListProgress2(ListProgress):
+    def process_next_task(self):
+        item = self.items[self._counter]
+
+        self.logger(item.metadata["id"])
         self._counter += 1

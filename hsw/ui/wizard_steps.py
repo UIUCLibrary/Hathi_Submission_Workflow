@@ -1,18 +1,56 @@
 import abc
-import os
-
 import datetime
-from PyQt5 import QtWidgets, QtGui, QtCore
-from . import message_logger
+import logging
+import os
+import typing
+import warnings
+import multiprocessing
+import threading
+import queue
+
+import sys
+from PyQt5 import QtWidgets, QtCore
+
+from hsw import collection_builder
 from hsw.package_list import PackagesList
 from . import processing
-from .package_files_delegate import FileSelectionDelegate
-from .packages_model import PackageModel
+from . import wizard
+from .package_files_delegate import FileSelectionDelegate, FileSelectionDelegate2
+from .packages_model import PackageModel2, PackageModel
+
+
+class LocatingPackagesDialog(QtWidgets.QProgressDialog):
+    def worker(self, finished_callback: typing.Callable, reporter_callback: typing.Callable = None):
+        package = self.package_builder.build_package(self.root)
+        with self.lock:
+            self.package = package
+        finished_callback()
+
+    def __init__(self, package_builder, root, *__args):
+        super().__init__(*__args)
+        self.lock = threading.Lock()
+        self.package_builder = package_builder
+        self.root = root
+        self.q = queue.Queue()
+        self.setRange(0, 0)
+        self.package_builder = package_builder
+        self.package = None
+        self.setWindowTitle("Locating objects")
+        self.setCancelButton(None)
+        self.setLabelText("Locating your files."
+                          "\nThis might take some time depending on the size of the collection.")
+        self.thr = threading.Thread(target=self.worker, args=(self.close,))
+
+    def exec_(self):
+        self.thr.start()
+        return super().exec_()
+
+        #
 
 
 class QtHathiWizardPage(QtWidgets.QWizardPage):
-    page_title = None           # type: str
-    help_information = None     # type: str
+    page_title = None  # type: str
+    help_information = None  # type: str
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -23,10 +61,10 @@ class QtHathiWizardPage(QtWidgets.QWizardPage):
         self.valid = True
 
     def initializePage(self):
+        logger = logging.getLogger(__name__)
         super().initializePage()
         self.valid = True
-        # TODO: remove the debug printing
-        print(self.data)
+        logger.debug(self.data)
 
     @classmethod
     def update_title(cls, value: "QtHathiWizardPage"):
@@ -58,10 +96,9 @@ class HathiWizardProcess(QtHathiWizardPage):
 
 
 
-    # def cleanupPage(self):
-    #     super().cleanupPage()
-    #     self.logger.clean()
-
+        # def cleanupPage(self):
+        #     super().cleanupPage()
+        #     self.logger.clean()
 
 
 ###############################################################################
@@ -85,6 +122,9 @@ class SelectRoot(QtHathiWizardPage):
         self.source_path_layout.addWidget(self.source_path_text)
         self.source_path_layout.addWidget(self.source_path_browse_button)
         self.my_layout.addLayout(self.source_path_layout)
+        if "root" in self.data:
+            print(self.data['root'])
+            self.source_path_text.setText(self.data['root'])
         self.registerField("RootLocation*", self.source_path_text)
 
     def browser_folder(self):
@@ -112,6 +152,8 @@ class SelectRoot(QtHathiWizardPage):
             try:
                 if os.path.isdir(root) and os.path.exists(root):
                     self.data["root"] = root
+                    self.data["package"] = self.build_package(root)
+
                     return True
             except WindowsError as e:
                 error_message = QtWidgets.QMessageBox(self)
@@ -121,19 +163,37 @@ class SelectRoot(QtHathiWizardPage):
                 error_message.setInformativeText(error_text)
         return False
 
+    def build_package(self, root):
+        if self.data['workflow'] == "DS":
+            workflow = collection_builder.DSStrategy()
+        elif self.data['workflow'] == "BrittleBooks":
+            workflow = collection_builder.BrittleBooksStrategy()
+        else:
+            raise Exception("Unknown workflow {}".format(self.data['workflow']))
+        package_builder = collection_builder.BuildPackage(workflow)
+        print("Loading")
+        package_locator = LocatingPackagesDialog(package_builder, root)
+        package_locator.exec_()
+        # self.data
+        return package_locator.package
+
     def cleanupPage(self):
-        del self.data['root']
+        if "root" in self.data:
+            del self.data['root']
 
     def nextId(self):
         if self.data['workflow'] == "DS":
-            return 3
+            return wizard.HathiWizardPages['PackageBrowser'].index
         else:
-            return 4
+            return wizard.HathiWizardPages['Prep'].index
 
+
+# TODO: REMOVE WHEN SAFE TO DO SO
 class PackageBrowser(QtHathiWizardPage):
     page_title = "Package Browser"
 
     def __init__(self, parent=None):
+        warnings.warn("use PackageBrowser2 instead", DeprecationWarning)
         super().__init__(parent)
         self.package_view = QtWidgets.QTreeView(self)
         self.package_view.setContentsMargins(0, 0, 0, 0)
@@ -156,6 +216,7 @@ class PackageBrowser(QtHathiWizardPage):
             error_message.setInformativeText(str(e))
             error_message.setWindowTitle("Error")
             error_message.show()
+        # self.model = PackageModel2(packages)
         self.model = PackageModel(packages)
 
     def initializePage(self):
@@ -166,6 +227,35 @@ class PackageBrowser(QtHathiWizardPage):
         self.package_view.setModel(self.model)
         self.package_view.setItemDelegateForColumn(1, FileSelectionDelegate(self))
 
+
+class PackageBrowser2(QtHathiWizardPage):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.package_view = QtWidgets.QTreeView(self)
+        self.package_view.setContentsMargins(0, 0, 0, 0)
+        self.my_layout.addWidget(self.package_view)
+
+        self.my_layout.setContentsMargins(0, 0, 0, 0)
+
+    def initializePage(self):
+        print("running alterntiave")
+        # super().initializePage()
+        # root = self.field("RootLocation")
+
+        packages = self.data["package"]
+
+        # package = self.f
+        self.load_model2(packages)
+
+        self.package_view.setModel(self.model)
+        self.package_view.setItemDelegateForColumn(1, FileSelectionDelegate2(self))
+
+    def load_model2(self, packages):
+        print("loaing model")
+        print(packages)
+        self.model = PackageModel2(packages)
+        # self.model = PackageModel(packages)
+
     def isComplete(self):
         if not self.valid:
             return False
@@ -175,8 +265,9 @@ class PackageBrowser(QtHathiWizardPage):
         if not self.valid:
             return False
 
-        self.data["packages"] = self.model._packages
+        self.data["package"] = self.model._packages
         return True
+
 
 # FIXME: HathiTrust Brittlebooks skips previous step so there no data has been set yet
 class Prep(HathiWizardProcess):
@@ -184,7 +275,7 @@ class Prep(HathiWizardProcess):
 
     def process(self):
         self.logger.log("{} Processing".format(datetime.datetime.now()))
-        foo = processing.ListProgress(self, self.data['packages']) # ,
+        foo = processing.ListProgress2(self, self.data['package'])  # ,
         foo.logger = lambda x: self.logger.log("Prepping: {}".format(x))
         try:
             foo.process()
@@ -205,7 +296,7 @@ class Validate(HathiWizardProcess):
     page_title = "Validate Package"
 
     def process(self):
-        foo = processing.ListProgress(self, self.data['packages'])
+        foo = processing.ListProgress2(self, self.data['package'])
         foo.logger = lambda x: self.logger.log("Validating: {}".format(x))
         try:
             foo.process()
@@ -218,9 +309,9 @@ class Zip(HathiWizardProcess):
     page_title = "Zip packages for submit"
 
     def process(self):
-        foo = processing.ListProgress(self, self.data['packages'])
+        foo = processing.ListProgress2(self, self.data['package'])
         foo.logger = lambda x: self.logger.log("Zipping : {}".format(x))
-                                      # lambda l: self.logger.log("{}{}".format(datetime.datetime.now(), l)))
+        # lambda l: self.logger.log("{}{}".format(datetime.datetime.now(), l)))
         try:
             foo.process()
         except processing.ProcessCanceled:
@@ -247,13 +338,12 @@ class WorkflowSelection(QtHathiWizardPage):
         self.selection_layout.addWidget(self.option1)
 
         self.option2 = QtWidgets.QRadioButton(self)
-        self.option2.setText("Brittlebooks")
+        self.option2.setText("BrittleBooks")
         self.option_group.addButton(self.option2)
         self.option_group.buttonToggled.connect(self.updated)
         self.selection_layout.addWidget(self.option2)
 
         self.my_layout.addWidget(self.workflow_box)
-
 
     def updated(self, selection: QtWidgets.QRadioButton):
         if selection.isChecked():
