@@ -2,47 +2,47 @@ from hsw import collection
 
 
 def test_collection_instance():
-    root = collection.Collection()
-    assert isinstance(root, collection.Collection)
+    root = collection.Package()
+    assert isinstance(root, collection.Package)
 
 
 def test_collection_metadata():
-    root = collection.Collection()
+    root = collection.Package()
     root.component_metadata['spam'] = "eggs"
     assert root.metadata['spam'] == 'eggs'
     assert root.path is None
-    assert root.packages == []
+    assert root.objects == []
 
 
 def test_collection_with_path():
-    root = collection.Collection(path="/usr/spam")
+    root = collection.Package(path="/usr/spam")
     assert root.path == "/usr/spam"
-    assert root.packages == []
+    assert root.objects == []
 
 
 def test_package_instance():
-    package = collection.Package()
-    assert isinstance(package, collection.Package)
+    package = collection.PackageObject()
+    assert isinstance(package, collection.PackageObject)
     assert len(package.package_files) == 0
     assert len(package.items) == 0
 
 
 def test_collection_with_package():
-    root = collection.Collection(path="/usr/spam")
+    root = collection.Package(path="/usr/spam")
 
-    package = collection.Package(parent=root)
-    assert isinstance(package, collection.Package)
+    package = collection.PackageObject(parent=root)
+    assert isinstance(package, collection.PackageObject)
 
-    assert len(root.packages) == 1
+    assert len(root.objects) == 1
     # noinspection PyUnusedLocal
-    package2 = collection.Package(parent=root)
-    assert len(root.packages) == 2
+    package2 = collection.PackageObject(parent=root)
+    assert len(root.objects) == 2
 
 
 def test_collection_with_package_transitive_metadata():
-    root = collection.Collection(path="/usr/spam")
+    root = collection.Package(path="/usr/spam")
     root.component_metadata['spam'] = "eggs"
-    package = collection.Package(parent=root)
+    package = collection.PackageObject(parent=root)
     package.metadata["eggs"] = "bacon"
     assert package.metadata['spam'] == "eggs"
     assert package.metadata['eggs'] == "bacon"
@@ -56,10 +56,10 @@ def test_item_instance():
 
 
 def test_item_transitive_metadata():
-    root = collection.Collection()
+    root = collection.Package()
     root.component_metadata['spam'] = "eggs"
 
-    package = collection.Package(parent=root)
+    package = collection.PackageObject(parent=root)
     package.metadata["eggs"] = "bacon"
 
     item = collection.Item(parent=package)
@@ -92,9 +92,9 @@ def test_instantiation_instance_with_parent():
 
 
 def test_full_package():
-    root = collection.Collection(path="/usr/spam")
+    root = collection.Package(path="/usr/spam")
     root.component_metadata["package_type"] = "DS"
-    my_package = collection.Package(parent=root)
+    my_package = collection.PackageObject(parent=root)
     my_item = collection.Item(parent=my_package)
     my_instantiation = collection.Instantiation("access", parent=my_item)
     assert my_instantiation.metadata["package_type"] == "DS"
