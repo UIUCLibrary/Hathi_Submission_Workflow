@@ -1,6 +1,7 @@
 import os
 import pytest
 from hsw import workflow
+import tempfile
 
 @pytest.fixture(scope="session")
 def ds_collection(tmpdir_factory):
@@ -88,15 +89,24 @@ def ds_collection(tmpdir_factory):
         new_test_item = tests_files_dir.join(test_file)
         with open(new_test_item, "w") as f:
             pass
-    strategy = workflow.DSStrategy()
-    package_builder = workflow.Workflow(strategy)
-    return package_builder.build_package(tests_files_dir)
-    # return str(tests_files_dir)
+
+    return str(tests_files_dir)
+
 
 def test_prep(ds_collection):
+    strategy = workflow.DSStrategy()
+    package_builder = workflow.Workflow(strategy)
+    new_package = package_builder.build_package(ds_collection)
 
     processor = workflow.Workflow(workflow.DSStrategy())
-    processor.prep(ds_collection)
+    processor.prep(new_package)
 
+    prepped_package = processor.build_package(new_package.path)
+    errors = processor.validate(prepped_package)
+    print(errors)
+    with tempfile.TemporaryDirectory() as temp_destination:
+        processor.zip(prepped_package, temp_destination)
+        assert os.path.exists(os.path.join(temp_destination, "1564651.zip"))
+        assert os.path.exists(os.path.join(temp_destination, "4564654.zip"))
+        assert os.path.exists(os.path.join(temp_destination, "7213538.zip"))
 
-    print(ds_collection)
