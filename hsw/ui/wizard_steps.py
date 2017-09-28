@@ -166,9 +166,9 @@ class SelectRoot(QtHathiWizardPage):
 
     def build_package(self, root):
         if self.data['workflow'] == "DS":
-            workflow_strats = workflow.DSStrategy()
+            workflow_strats = workflow.DSWorkflow()
         elif self.data['workflow'] == "BrittleBooks":
-            workflow_strats = workflow.BrittleBooksStrategy()
+            workflow_strats = workflow.BrittleBooksWorkflow()
         else:
             raise Exception("Unknown workflow {}".format(self.data['workflow']))
         # package_builder = collection_builder.BuildPackage(workflow_strats)
