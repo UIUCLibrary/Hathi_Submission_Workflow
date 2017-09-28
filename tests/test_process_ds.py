@@ -186,11 +186,11 @@ def ds_collection(tmpdir_factory):
 
 
 def test_prep(ds_collection):
-    strategy = workflow.DSStrategy()
+    strategy = workflow.DSWorkflow()
     package_builder = workflow.Workflow(strategy)
     new_package = package_builder.build_package(ds_collection)
 
-    processor = workflow.Workflow(workflow.DSStrategy())
+    processor = workflow.Workflow(workflow.DSWorkflow())
     processor.prep(new_package)
 
     prepped_package = processor.build_package(new_package.path)
