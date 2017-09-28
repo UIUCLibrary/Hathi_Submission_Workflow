@@ -213,7 +213,7 @@ def test_item_instance(bb_collection_root):
 
 
 def test_bb_collection_strat(bb_collection_root):
-    strategy = workflow.BrittleBooksStrategy()
+    strategy = workflow.BrittleBooksWorkflow()
     # strategy = collection_builder.BrittleBooksStrategy()
     package_builder = workflow.Workflow(strategy)
     my_collection = package_builder.build_package(bb_collection_root)
@@ -221,28 +221,28 @@ def test_bb_collection_strat(bb_collection_root):
 
 
 def test_ds_collection_strategy(ds_collection_root):
-    strategy = workflow.DSStrategy()
+    strategy = workflow.DSWorkflow()
     package_builder = workflow.Workflow(strategy)
     my_collection = package_builder.build_package(ds_collection_root)
     assert isinstance(my_collection, collection.Package)
 
 
 def test_ds_package_len(ds_collection_root):
-    strategy = workflow.DSStrategy()
+    strategy = workflow.DSWorkflow()
     package_builder = workflow.Workflow(strategy)
     my_collection = package_builder.build_package(ds_collection_root)
     assert len(my_collection) == 3
 
 
 def test_ds_object_len(ds_collection_root):
-    strategy = workflow.DSStrategy()
+    strategy = workflow.DSWorkflow()
     package_builder = workflow.Workflow(strategy)
     my_collection = package_builder.build_package(ds_collection_root)
     my_object = my_collection[0]
     assert len(my_object) == 8
 
 def test_ds_object_id(ds_collection_root):
-    strategy = workflow.DSStrategy()
+    strategy = workflow.DSWorkflow()
     package_builder = workflow.Workflow(strategy)
     my_collection = package_builder.build_package(ds_collection_root)
     my_object = my_collection[0]
@@ -250,7 +250,7 @@ def test_ds_object_id(ds_collection_root):
 
 
 def test_ds_item_len(ds_collection_root):
-    strategy = workflow.DSStrategy()
+    strategy = workflow.DSWorkflow()
     package_builder = workflow.Workflow(strategy)
     my_collection = package_builder.build_package(ds_collection_root)
     my_object = my_collection[0]
@@ -259,7 +259,7 @@ def test_ds_item_len(ds_collection_root):
 
 
 def test_ds_instantiations(ds_collection_root):
-    strategy = workflow.DSStrategy()
+    strategy = workflow.DSWorkflow()
     package_builder = workflow.Workflow(strategy)
     my_package = package_builder.build_package(ds_collection_root)
     my_object = my_package[0]
