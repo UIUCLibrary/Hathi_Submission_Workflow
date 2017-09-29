@@ -20,10 +20,12 @@ HathiWizardPages = {
         HathiWizardPageSteps(index=4, wizard_page=wizard_steps.Prep),
     "Validate":
         HathiWizardPageSteps(index=5, wizard_page=wizard_steps.Validate),
+    "SelectDestination":
+        HathiWizardPageSteps(index=6, wizard_page=wizard_steps.SelectDestination),
     "Zip":
-        HathiWizardPageSteps(index=6, wizard_page=wizard_steps.Zip),
+        HathiWizardPageSteps(index=7, wizard_page=wizard_steps.Zip),
     "EndPage":
-        HathiWizardPageSteps(index=7, wizard_page=wizard_steps.EndPage),
+        HathiWizardPageSteps(index=8, wizard_page=wizard_steps.EndPage),
 }
 
 class HathiWizard(QtWidgets.QWizard):
