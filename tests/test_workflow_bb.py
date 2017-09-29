@@ -1,6 +1,6 @@
 import pytest
 import os
-from hsw import collection_builder,workflow
+from hsw import workflow
 
 
 @pytest.fixture(scope="session")
