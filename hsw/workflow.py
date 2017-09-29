@@ -34,6 +34,13 @@ class BrittleBooksWorkflow(AbsWorkflow):
     def build_collection(self, root) -> collection.Package:
         return collection_builder.build_bb_collection(root)
 
+    @staticmethod
+    def validate(package):
+        errors = []
+        for package_object in package:
+            errors += validate_process.process_directory(package_object.metadata['path'],require_page_data=False)
+        return errors
+
 
 class DSWorkflow(AbsWorkflow):
     def build_collection(self, root) -> collection.Package:
