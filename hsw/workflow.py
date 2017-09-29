@@ -13,9 +13,7 @@ class AbsWorkflow(metaclass=abc.ABCMeta):
 
     @staticmethod
     def prep(package):
-        for package_object in package:
-            package_builder = package_creater.InplacePackage(package_object.metadata['path'])
-            package_builder.generate_package()
+        pass
 
     @staticmethod
     def validate(package):
@@ -38,13 +36,21 @@ class BrittleBooksWorkflow(AbsWorkflow):
     def validate(package):
         errors = []
         for package_object in package:
-            errors += validate_process.process_directory(package_object.metadata['path'],require_page_data=False)
+            errors += validate_process.process_directory(package_object.metadata['path'], require_page_data=False)
         return errors
 
 
 class DSWorkflow(AbsWorkflow):
     def build_collection(self, root) -> collection.Package:
         return collection_builder.build_ds_collection(root)
+
+    @staticmethod
+    def prep(package):
+        for package_object in package:
+            package_builder = package_creater.InplacePackage(package_object.metadata['path'])
+            title_page = package_object.metadata["title_page"]
+            print(title_page)
+            package_builder.generate_package(title_page=title_page)
 
 
 class Workflow:
