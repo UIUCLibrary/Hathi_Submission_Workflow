@@ -186,20 +186,32 @@ def ds_collection(tmpdir_factory):
 
 
 def test_prep(ds_collection):
-    strategy = workflow.DSWorkflow()
-    package_builder = workflow.Workflow(strategy)
-    new_package = package_builder.build_package(ds_collection)
+    ds_workflow = workflow.Workflow(workflow.DSWorkflow())
+    new_package = ds_workflow.build_package(ds_collection)
 
-    processor = workflow.Workflow(workflow.DSWorkflow())
-    processor.prep(new_package)
+    new_package.children[0].component_metadata["title_page"] = "00000002.jp2"
+    new_package.children[1].component_metadata["title_page"] = "00000002.jp2"
+    new_package.children[2].component_metadata["title_page"] = "00000002.jp2"
 
-    prepped_package = processor.build_package(new_package.path)
-    errors = processor.validate(prepped_package)
+    ds_workflow.prep(new_package)
+    prepped_package = ds_workflow.build_package(new_package.path)
+    errors = ds_workflow.validate(prepped_package)
+
+    for package_object in prepped_package:
+        path = package_object.metadata['path']
+        meta = os.path.join(path, "meta.yml")
+        assert os.path.exists(meta)
+        with open(meta, "r") as f:
+            yaml = f.read()
+            if """    00000002.jp2:
+        label: TITLE""" not in yaml:
+                pytest.fail("missing title_page in {}".format(meta))
+
     for error in errors:
         print(error)
     assert len(errors) == 0
     with tempfile.TemporaryDirectory() as temp_destination:
-        processor.zip(prepped_package, temp_destination)
+        ds_workflow.zip(prepped_package, temp_destination)
         assert os.path.exists(os.path.join(temp_destination, "1564651.zip"))
         assert os.path.exists(os.path.join(temp_destination, "4564654.zip"))
         assert os.path.exists(os.path.join(temp_destination, "7213538.zip"))
