@@ -4,6 +4,7 @@ import logging
 import os
 import typing
 import warnings
+from hsw import workflow
 import multiprocessing
 import threading
 import queue
@@ -11,7 +12,7 @@ import queue
 import sys
 from PyQt5 import QtWidgets, QtCore
 
-from hsw import collection_builder
+# from hsw import collection_builder
 from hsw.package_list import PackagesList
 from . import processing
 from . import wizard
@@ -165,12 +166,13 @@ class SelectRoot(QtHathiWizardPage):
 
     def build_package(self, root):
         if self.data['workflow'] == "DS":
-            workflow = collection_builder.DSStrategy()
+            workflow_strats = workflow.DSWorkflow()
         elif self.data['workflow'] == "BrittleBooks":
-            workflow = collection_builder.BrittleBooksStrategy()
+            workflow_strats = workflow.BrittleBooksWorkflow()
         else:
             raise Exception("Unknown workflow {}".format(self.data['workflow']))
-        package_builder = collection_builder.BuildPackage(workflow)
+        # package_builder = collection_builder.BuildPackage(workflow_strats)
+        package_builder = workflow.Workflow(workflow_strats)
         print("Loading")
         package_locator = LocatingPackagesDialog(package_builder, root)
         package_locator.exec_()
@@ -185,7 +187,68 @@ class SelectRoot(QtHathiWizardPage):
         if self.data['workflow'] == "DS":
             return wizard.HathiWizardPages['PackageBrowser'].index
         else:
-            return wizard.HathiWizardPages['Prep'].index
+            return wizard.HathiWizardPages['Validate'].index
+
+
+class SelectDestination(QtHathiWizardPage):
+    page_title = "Zip Packages"
+    help_information = "Select a folder to save the zipped packages"
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.source_path_layout = QtWidgets.QHBoxLayout()
+        self.source_path_text = QtWidgets.QLineEdit(self)
+        self.source_path_browse_button = QtWidgets.QPushButton(self)
+        self.source_path_browse_button.clicked.connect(self.browser_folder)
+        self.source_path_browse_button.setText("Browse")
+        self.source_path_text.textChanged.connect(self.completeChanged)
+        self.source_path_layout.addWidget(self.source_path_text)
+        self.source_path_layout.addWidget(self.source_path_browse_button)
+        self.my_layout.addLayout(self.source_path_layout)
+        if "export_destination" in self.data:
+            print(self.data['root'])
+            self.source_path_text.setText(self.data['root'])
+        self.registerField("export_destination*", self.source_path_text)
+
+    def browser_folder(self):
+
+        folder = self.source_path_text.text()
+
+        if os.path.exists(folder):
+            path = QtWidgets.QFileDialog.getExistingDirectory(self, "Find path", folder)
+        else:
+            path = QtWidgets.QFileDialog.getExistingDirectory(self, "Find path")
+        if path:
+            self.source_path_text.setText(path)
+
+    def isComplete(self):
+        root = self.field("export_destination")
+        if root:
+            if os.path.isdir(root) and os.path.exists(root):
+                return True
+        return False
+
+    def cleanupPage(self):
+        if "export_destination" in self.data:
+            del self.data['export_destination']
+
+    def validatePage(self):
+        super().validatePage()
+        destination = self.field("export_destination")
+        if destination:
+            try:
+                if os.path.isdir(destination) and os.path.exists(destination):
+                    self.data["export_destination"] = destination
+
+                    return True
+            except WindowsError as e:
+                error_message = QtWidgets.QMessageBox(self)
+                error_message.setIcon(QtWidgets.QMessageBox.Critical)
+                error_message.setText("Error")
+                error_text = str(e)
+                error_message.setInformativeText(error_text)
+        return False
+
 
 
 # TODO: REMOVE WHEN SAFE TO DO SO
@@ -275,10 +338,17 @@ class Prep(HathiWizardProcess):
 
     def process(self):
         self.logger.log("{} Processing".format(datetime.datetime.now()))
-        foo = processing.ListProgress2(self, self.data['package'])  # ,
-        foo.logger = lambda x: self.logger.log("Prepping: {}".format(x))
+        if self.data['workflow'] == "DS":
+            processing_workflow = workflow.Workflow(workflow.DSWorkflow())
+        else:
+            raise Exception("invalid workflow, {}".format(self.data['workflow']))
+
+        # foo = processing.ListProgress2(self, self.data['package'])  # ,
+        # foo.logger = lambda x: self.logger.log("Prepping: {}".format(x))
         try:
-            foo.process()
+            self.logger.log("Prep started".format(datetime.datetime.now()))
+            processing_workflow.prep(self.data['package'])
+            self.logger.log("Prep ended".format(datetime.datetime.now()))
         except processing.ProcessCanceled:
             return False
         return True
@@ -296,24 +366,39 @@ class Validate(HathiWizardProcess):
     page_title = "Validate Package"
 
     def process(self):
-        foo = processing.ListProgress2(self, self.data['package'])
-        foo.logger = lambda x: self.logger.log("Validating: {}".format(x))
+        if self.data['workflow'] == "DS":
+            processing_workflow = workflow.Workflow(workflow.DSWorkflow())
+        elif self.data['workflow'] == "BrittleBooks":
+            processing_workflow = workflow.Workflow(workflow.BrittleBooksWorkflow())
+        else:
+            raise Exception("Unknown workflow, {}".format(self.data['workflow']))
         try:
-            foo.process()
+            errors = processing_workflow.validate(self.data['package'])
+            message = "\n".join([error.message for error in errors])
+            self.logger.log(message)
         except processing.ProcessCanceled:
             return False
         return True
+
 
 
 class Zip(HathiWizardProcess):
     page_title = "Zip packages for submit"
 
     def process(self):
-        foo = processing.ListProgress2(self, self.data['package'])
-        foo.logger = lambda x: self.logger.log("Zipping : {}".format(x))
+        # foo = processing.ListProgress2(self, self.data['package'])
+        # foo.logger = lambda x: self.logger.log("Zipping : {}".format(x))
         # lambda l: self.logger.log("{}{}".format(datetime.datetime.now(), l)))
+        if self.data['workflow'] == "DS":
+            processing_workflow = workflow.Workflow(workflow.DSWorkflow())
+        elif self.data['workflow'] == "BrittleBooks":
+            processing_workflow = workflow.Workflow(workflow.BrittleBooksWorkflow())
+        else:
+            raise Exception("Unknown workflow, {}".format(self.data['workflow']))
         try:
-            foo.process()
+            self.logger.log("Zipping")
+            processing_workflow.zip(self.data['package'], destination=self.data['export_destination'])
+            self.logger.log("Zipping completed")
         except processing.ProcessCanceled:
             return False
         return True

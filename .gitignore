@@ -154,3 +154,20 @@ ENV/
 
 /.mypy_cache/
 /hsw/ui_packages.py
+/hsw/hsw.iml
+.idea/deployment.xml
+.idea/encodings.xml
+.idea/hathi_submission_workflow.iml
+.idea/inspectionProfiles/
+.idea/jenkinsSettings.xml
+.idea/misc.xml
+.idea/vagrant.xml
+.idea/vcs.xml
+docs/package_UML.vsdx
+docs/planning/
+docs/source/_templates/
+hsw/Hathi_submission_workflow.iml
+hsw/ui/ui_packages.py
+windows_build/.vs/
+windows_build/obj/
+/hsw/Hathi_submission_workflow.iml

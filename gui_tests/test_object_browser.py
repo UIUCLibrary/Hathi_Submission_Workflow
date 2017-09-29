@@ -4,6 +4,7 @@ from PyQt5 import QtWidgets
 import sys
 
 from hsw import collection_builder
+from hsw import workflow
 from hsw.ui.wizard import HathiWizardPages
 
 ROOT = r"\\storage.library.illinois.edu\HathiTrust\HenryTest-PSR_2\DCC\Test_PSR-37_20170925"
@@ -17,9 +18,10 @@ class HathiFilesWizard(QtWidgets.QWizard):
         self.addPage(HathiWizardPages["PackageBrowser"].wizard_page(self))
         self.addPage(HathiWizardPages["EndPage"].wizard_page(self))
         self.data["root"] = ROOT
-        workflow = collection_builder.DSStrategy()
+        workflow_strat = collection_builder.DSStrategy()
 
-        package_builder = collection_builder.BuildPackage(workflow)
+        # package_builder = collection_builder.BuildPackage(workflow_strat)
+        package_builder = workflow.Workflow(workflow_strat)
         self.data["package"] = package_builder.build_package(ROOT)
 
     #

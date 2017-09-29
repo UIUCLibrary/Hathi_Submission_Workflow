@@ -6,12 +6,12 @@ digraph Tree {
         "DS_selected" -> select_package_root;
         select_package_root ->  "DS_path"[dir=none,weight=1, label="DS Workflow only"];
         "DS_path" -> select_title_pages
-        select_title_pages -> process_prep;
+        select_title_pages -> process_prep -> process_validate -> select_output_folder -> process_zip ->end ;
 
         workflow_selection -> "brittlebooks_selected"[dir=none,weight=1, label="Selected Brittlebooks Workflow"];
         "brittlebooks_selected"-> select_package_root;
         select_package_root-> "brittlebooks_path"[dir=none,weight=1, label="Selected Brittlebooks Workflow"];
-        "brittlebooks_path" ->  process_prep -> process_validate -> select_output_folder -> process_zip ->end ;
+        "brittlebooks_path" ->  process_validate;
 
         "DS_selected" [shape=diamond,style=filled,label="",height=.1,width=.1]
         "DS_path" [shape=diamond,style=filled,label="",height=.1,width=.1]
@@ -21,15 +21,15 @@ digraph Tree {
         start [label="Start"]
         workflow_selection [label="User selects\nworkflow from\noptions", shape=diamond]
         select_package_root [label="User selects root folder location of packages",shape=box]
-        select_title_pages [label="User selects title pages\nfor each package",shape=box]
+        select_title_pages [label="User selects title pages for each package",shape=box]
         select_output_folder [label="User selects output folder",shape=box]
         process_prep [label="User presses the \"Process\" button to\ninitiate prepping packages found in selected folder",shape=box]
-        process_validate [label="User presses the \"Process\" button to\ninitiate the validation of the packages created",shape=box]
+        process_validate [label="User presses the \"Process\" button to initiate the validation of the packages created",shape=box]
         process_zip [label="User presses the \"Process\" button to\ninitiate the zipping of packages",shape=box]
         end [label="End"]
 
 
-        nodesep=1.0;
+
         splines=ortho;
         {rank=same;brittlebooks_path;select_title_pages}
         {rank=same;brittlebooks_selected;DS_selected}
