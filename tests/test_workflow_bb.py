@@ -134,7 +134,10 @@ def test_prep(bb_collection):
     print(bb_collection)
     my_workflow = workflow.Workflow(workflow.BrittleBooksWorkflow())
     new_package = my_workflow.build_package(bb_collection)
-    errors = my_workflow.validate(new_package)
+    tasks = my_workflow.validate(new_package)
+    errors = []
+    for task in tasks:
+        errors += task()
     for error in errors:
         print(error)
     assert len(errors) == 0
