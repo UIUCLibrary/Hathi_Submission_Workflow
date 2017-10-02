@@ -48,7 +48,7 @@ class BrittleBooksWorkflow(AbsWorkflow):
         closures = []
         for package_object in package:
             def create_task(path):
-                return validate_process.process_directory(path)
+                return validate_process.process_directory(path, require_page_data=False)
 
             closures.append(lambda path=package_object.metadata['path']: create_task(path))
         return closures
