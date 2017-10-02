@@ -369,7 +369,8 @@ class Zip(HathiWizardProcess):
         try:
             self.logger.log("Zipping")
             processing_window.process()
-            self.logger.log("Zipping completed")
+            self.logger.log("Zipping completed.")
+            self.logger.log("Files can be found at {}".format(self.data['export_destination']))
         except processing.ProcessCanceled:
             return False
         return True
