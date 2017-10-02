@@ -16,7 +16,7 @@ from PyQt5 import QtWidgets, QtCore
 from hsw.package_list import PackagesList
 from . import processing
 from . import wizard
-from .package_files_delegate import FileSelectionDelegate, FileSelectionDelegate2
+from .package_files_delegate import FileSelectionDelegate2
 from .packages_model import PackageModel2, PackageModel
 from hathi_validate import report as hathi_validate_report
 
@@ -250,47 +250,6 @@ class SelectDestination(QtHathiWizardPage):
         return False
 
 
-
-# TODO: REMOVE WHEN SAFE TO DO SO
-class PackageBrowser(QtHathiWizardPage):
-    page_title = "Package Browser"
-
-    def __init__(self, parent=None):
-        warnings.warn("use PackageBrowser2 instead", DeprecationWarning)
-        super().__init__(parent)
-        self.package_view = QtWidgets.QTreeView(self)
-        self.package_view.setContentsMargins(0, 0, 0, 0)
-        self.my_layout.addWidget(self.package_view)
-        self.my_layout.setContentsMargins(0, 0, 0, 0)
-
-    def load_model(self, root):
-        packages = PackagesList(root)
-        try:
-            for path in filter(lambda item: item.is_dir(), os.scandir(root)):
-                packages.add_package(path.path)
-            self.package_view.setEnabled(True)
-
-        except OSError as e:
-            self.package_view.setEnabled(False)
-            self.valid = False
-            error_message = QtWidgets.QMessageBox(self)
-            error_message.setIcon(QtWidgets.QMessageBox.Critical)
-            error_message.setText("Error")
-            error_message.setInformativeText(str(e))
-            error_message.setWindowTitle("Error")
-            error_message.show()
-        # self.model = PackageModel2(packages)
-        self.model = PackageModel(packages)
-
-    def initializePage(self):
-        super().initializePage()
-        root = self.field("RootLocation")
-        self.load_model(root)
-
-        self.package_view.setModel(self.model)
-        self.package_view.setItemDelegateForColumn(1, FileSelectionDelegate(self))
-
-
 class PackageBrowser2(QtHathiWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -411,8 +370,6 @@ class Zip(HathiWizardProcess):
         try:
             self.logger.log("Zipping")
             processing_window.process()
-
-            # processing_workflow.zip(self.data['package'], destination=self.data['export_destination'])
             self.logger.log("Zipping completed")
         except processing.ProcessCanceled:
             return False
