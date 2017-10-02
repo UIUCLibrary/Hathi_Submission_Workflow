@@ -218,8 +218,7 @@ def test_prep(ds_collection):
     with tempfile.TemporaryDirectory() as temp_destination:
         for task in ds_workflow.zip(prepped_package, temp_destination):
             task()
-        first = os.path.join(temp_destination, "1564651.zip")
-        assert os.path.exists(first)
+        assert os.path.exists(os.path.join(temp_destination, "1564651.zip"))
         assert os.path.exists(os.path.join(temp_destination, "4564654.zip"))
         assert os.path.exists(os.path.join(temp_destination, "7213538.zip"))
 
