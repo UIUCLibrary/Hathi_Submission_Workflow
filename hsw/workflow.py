@@ -65,7 +65,7 @@ class DSWorkflow(AbsWorkflow):
             def package_generator(path, title_page):
                 package_builder = package_creater.InplacePackage(path)
                 # title_page = package_object.metadata["title_page"]
-                print(title_page)
+                # print(title_page)
                 package_builder.generate_package(destination=path, title_page=title_page)
 
             closures.append(lambda path=package_object.metadata['path'],
