@@ -18,7 +18,7 @@ from . import processing
 from . import wizard
 from .package_files_delegate import FileSelectionDelegate, FileSelectionDelegate2
 from .packages_model import PackageModel2, PackageModel
-
+from hathi_validate import report as hathi_validate_report
 
 class LocatingPackagesDialog(QtWidgets.QProgressDialog):
     def worker(self, finished_callback: typing.Callable, reporter_callback: typing.Callable = None):
@@ -345,9 +345,13 @@ class Prep(HathiWizardProcess):
 
         # foo = processing.ListProgress2(self, self.data['package'])  # ,
         # foo.logger = lambda x: self.logger.log("Prepping: {}".format(x))
+        tasks = processing_workflow.prep(self.data['package'])
+        processing_window = processing.ListCallableProgress(self, tasks=tasks, task_name="Prepping")
+        processing_window.logger = self.logger.log
         try:
+
             self.logger.log("Prep started".format(datetime.datetime.now()))
-            processing_workflow.prep(self.data['package'])
+            processing_window.process()
             self.logger.log("Prep ended".format(datetime.datetime.now()))
         except processing.ProcessCanceled:
             return False
@@ -372,12 +376,17 @@ class Validate(HathiWizardProcess):
             processing_workflow = workflow.Workflow(workflow.BrittleBooksWorkflow())
         else:
             raise Exception("Unknown workflow, {}".format(self.data['workflow']))
+        tasks = processing_workflow.validate(self.data['package'])
+        processing_window = processing.ListCallableProgress(self, tasks=tasks, task_name="Validating")
+
+        processing_window.logger = self.logger.log
         try:
-            errors = processing_workflow.validate(self.data['package'])
-            message = "\n".join([error.message for error in errors])
-            self.logger.log(message)
+            processing_window.process()
+
         except processing.ProcessCanceled:
             return False
+        message = hathi_validate_report.get_report_as_str(processing_window.results, width=50)
+        self.logger.log(message)
         return True
 
 
@@ -389,15 +398,21 @@ class Zip(HathiWizardProcess):
         # foo = processing.ListProgress2(self, self.data['package'])
         # foo.logger = lambda x: self.logger.log("Zipping : {}".format(x))
         # lambda l: self.logger.log("{}{}".format(datetime.datetime.now(), l)))
+
         if self.data['workflow'] == "DS":
             processing_workflow = workflow.Workflow(workflow.DSWorkflow())
         elif self.data['workflow'] == "BrittleBooks":
             processing_workflow = workflow.Workflow(workflow.BrittleBooksWorkflow())
         else:
             raise Exception("Unknown workflow, {}".format(self.data['workflow']))
+        tasks = processing_workflow.zip(self.data['package'], self.data['export_destination'])
+        processing_window = processing.ListCallableProgress(self, tasks=tasks, task_name="Zipping")
+        processing_window.logger = self.logger.log
         try:
             self.logger.log("Zipping")
-            processing_workflow.zip(self.data['package'], destination=self.data['export_destination'])
+            processing_window.process()
+
+            # processing_workflow.zip(self.data['package'], destination=self.data['export_destination'])
             self.logger.log("Zipping completed")
         except processing.ProcessCanceled:
             return False
