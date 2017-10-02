@@ -273,7 +273,7 @@ class PackageBrowser2(QtHathiWizardPage):
         self.package_view.setItemDelegateForColumn(1, FileSelectionDelegate2(self))
 
     def load_model2(self, packages):
-        print("loaing model")
+        print("loading model")
         print(packages)
         self.model = PackageModel2(packages)
         # self.model = PackageModel(packages)
@@ -291,7 +291,6 @@ class PackageBrowser2(QtHathiWizardPage):
         return True
 
 
-# FIXME: HathiTrust Brittlebooks skips previous step so there no data has been set yet
 class Prep(HathiWizardProcess):
     page_title = "Prep"
 
