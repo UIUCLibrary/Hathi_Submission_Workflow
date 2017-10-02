@@ -20,6 +20,7 @@ from .package_files_delegate import FileSelectionDelegate2
 from .packages_model import PackageModel2, PackageModel
 from hathi_validate import report as hathi_validate_report
 
+
 class LocatingPackagesDialog(QtWidgets.QProgressDialog):
     def worker(self, finished_callback: typing.Callable, reporter_callback: typing.Callable = None):
         package = self.package_builder.build_package(self.root)
@@ -41,6 +42,10 @@ class LocatingPackagesDialog(QtWidgets.QProgressDialog):
         self.setLabelText("Locating your files."
                           "\nThis might take some time depending on the size of the collection.")
         self.thr = threading.Thread(target=self.worker, args=(self.close,))
+
+    def close(self):
+        print("Closing")
+        return super().close()
 
     def exec_(self):
         self.thr.start()
@@ -343,10 +348,27 @@ class Validate(HathiWizardProcess):
 
         except processing.ProcessCanceled:
             return False
-        message = hathi_validate_report.get_report_as_str(processing_window.results, width=50)
+        message = self.build_report(processing_window.results)
+
         self.logger.log(message)
         return True
 
+    def build_report(self, results) -> str:
+        splitter = "*" * 75
+        title = "Validation report"
+        sorted_results = sorted(results, key=lambda r: r.source)
+        message_lines = []
+        for result in sorted_results:
+            message_lines.append(str(result))
+        report_data = "\n".join(message_lines)
+
+        return "\n" \
+               "{}\n" \
+               "{}\n" \
+               "{}\n" \
+               "{}\n" \
+               "{}\n" \
+            .format(splitter, title, splitter, report_data, splitter)
 
 
 class Zip(HathiWizardProcess):
