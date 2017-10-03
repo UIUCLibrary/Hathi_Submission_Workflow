@@ -60,7 +60,7 @@ class BrittleBooksWorkflow(AbsWorkflow):
         return closures
 
     @staticmethod
-    def update_checksums(package: collection.Package) -> typing.List[typing.Callable]:
+    def update_checksums(package) -> typing.List[typing.Callable]:
         closures = []
         for package_object in package:
             package_object_path = package_object.metadata["path"]
@@ -73,6 +73,7 @@ class BrittleBooksWorkflow(AbsWorkflow):
                 with open(checksum_file, "w") as f:
                     f.write(checksum_report_data)
             closures.append(lambda path=package_object_path: create_task(path))
+
         return closures
 
 
