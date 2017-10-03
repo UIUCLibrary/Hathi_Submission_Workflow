@@ -354,7 +354,7 @@ class Validate(HathiWizardProcess):
         return True
 
     def build_report(self, results) -> str:
-        splitter = "*" * 75
+        splitter = "*" * 20
         title = "Validation report"
         sorted_results = sorted(results, key=lambda r: r.source)
         message_lines = []
