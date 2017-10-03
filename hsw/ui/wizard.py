@@ -18,15 +18,18 @@ HathiWizardPages = {
         HathiWizardPageSteps(index=3, wizard_page=wizard_steps.PackageBrowser2),
     "Prep":
         HathiWizardPageSteps(index=4, wizard_page=wizard_steps.Prep),
+    "UpdateChecksums":
+        HathiWizardPageSteps(index=5, wizard_page=wizard_steps.UpdateChecksums),
     "Validate":
-        HathiWizardPageSteps(index=5, wizard_page=wizard_steps.Validate),
+        HathiWizardPageSteps(index=6, wizard_page=wizard_steps.Validate),
     "SelectDestination":
-        HathiWizardPageSteps(index=6, wizard_page=wizard_steps.SelectDestination),
+        HathiWizardPageSteps(index=7, wizard_page=wizard_steps.SelectDestination),
     "Zip":
-        HathiWizardPageSteps(index=7, wizard_page=wizard_steps.Zip),
+        HathiWizardPageSteps(index=8, wizard_page=wizard_steps.Zip),
     "EndPage":
-        HathiWizardPageSteps(index=8, wizard_page=wizard_steps.EndPage),
+        HathiWizardPageSteps(index=9, wizard_page=wizard_steps.EndPage),
 }
+
 
 class HathiWizard(QtWidgets.QWizard):
     NUM_PAGES = 1
@@ -39,4 +42,3 @@ class HathiWizard(QtWidgets.QWizard):
         self.logger.attach(self.document_logger)
         for key, wizard_page in HathiWizardPages.items():
             self.setPage(wizard_page.index, wizard_page.wizard_page(self))
-

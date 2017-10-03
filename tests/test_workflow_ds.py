@@ -193,9 +193,10 @@ def test_prep(ds_collection):
     new_package.children[1].component_metadata["title_page"] = "00000002.jp2"
     new_package.children[2].component_metadata["title_page"] = "00000002.jp2"
 
-    ds_workflow.prep(new_package)
+    for task in ds_workflow.prep(new_package):
+        task()
     prepped_package = ds_workflow.build_package(new_package.path)
-    errors = ds_workflow.validate(prepped_package)
+    errors = []
 
     for package_object in prepped_package:
         path = package_object.metadata['path']
@@ -207,11 +208,16 @@ def test_prep(ds_collection):
         label: TITLE""" not in yaml:
                 pytest.fail("missing title_page in {}".format(meta))
 
+    tasks = ds_workflow.validate(prepped_package)
+    for task in tasks:
+        errors += task()
+
     for error in errors:
         print(error)
     assert len(errors) == 0
     with tempfile.TemporaryDirectory() as temp_destination:
-        ds_workflow.zip(prepped_package, temp_destination)
+        for task in ds_workflow.zip(prepped_package, temp_destination):
+            task()
         assert os.path.exists(os.path.join(temp_destination, "1564651.zip"))
         assert os.path.exists(os.path.join(temp_destination, "4564654.zip"))
         assert os.path.exists(os.path.join(temp_destination, "7213538.zip"))

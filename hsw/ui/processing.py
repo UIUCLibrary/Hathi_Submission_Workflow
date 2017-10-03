@@ -67,6 +67,37 @@ class DummyProgress(ProcessProgress):
     def current_task_index(self) -> int:
         return self._counter
 
+# TODO: Create a worker class
+
+class ListCallableProgress(ProcessProgress):
+    def __init__(self, parent, tasks, task_name="processing", logger=None):
+        self.task_name = task_name
+        self._tasks = tasks
+        self.results = []
+        self.logger = logger or print
+        super().__init__(parent)
+        self._counter = 0
+
+    @property
+    def total_tasks(self) -> int:
+        return len(self._tasks)
+
+    @property
+    def current_task_index(self) -> int:
+        return self._counter
+
+    def process_next_task(self):
+        tname = self.task_name
+        num = self.current_task_index + 1
+        total = self.total_tasks
+        message = "{} {} of {}".format(tname.title(), num, total)
+        self._update_message(message)
+        self.logger(message)
+        task = self._tasks[self._counter]
+        result = task()
+        if result:
+            self.results += result
+        self._counter += 1
 
 
 class ListProgress(ProcessProgress):

@@ -16,23 +16,29 @@ from PyQt5 import QtWidgets, QtCore
 from hsw.package_list import PackagesList
 from . import processing
 from . import wizard
-from .package_files_delegate import FileSelectionDelegate, FileSelectionDelegate2
+from .package_files_delegate import FileSelectionDelegate2
 from .packages_model import PackageModel2, PackageModel
+from hathi_validate import report as hathi_validate_report
 
 
 class LocatingPackagesDialog(QtWidgets.QProgressDialog):
-    def worker(self, finished_callback: typing.Callable, reporter_callback: typing.Callable = None):
+    completed_successfully = QtCore.pyqtSignal()
+
+    def worker(self, finished_callback: typing.Callable = None, reporter_callback: typing.Callable = None):
         package = self.package_builder.build_package(self.root)
         with self.lock:
             self.package = package
-        finished_callback()
+        if finished_callback:
+            finished_callback()
+        self.completed_successfully.emit()
 
     def __init__(self, package_builder, root, *__args):
         super().__init__(*__args)
+        self.completed_successfully.connect(self.all_done)
         self.lock = threading.Lock()
         self.package_builder = package_builder
         self.root = root
-        self.q = queue.Queue()
+        # self.q = queue.Queue()
         self.setRange(0, 0)
         self.package_builder = package_builder
         self.package = None
@@ -40,7 +46,16 @@ class LocatingPackagesDialog(QtWidgets.QProgressDialog):
         self.setCancelButton(None)
         self.setLabelText("Locating your files."
                           "\nThis might take some time depending on the size of the collection.")
-        self.thr = threading.Thread(target=self.worker, args=(self.close,))
+        self.thr = threading.Thread(target=self.worker)
+
+    def all_done(self):
+        self.close()
+
+    def close(self):
+        self.thr.join()
+        value = super().close()
+        print("Closing")
+        return value
 
     def exec_(self):
         self.thr.start()
@@ -187,7 +202,7 @@ class SelectRoot(QtHathiWizardPage):
         if self.data['workflow'] == "DS":
             return wizard.HathiWizardPages['PackageBrowser'].index
         else:
-            return wizard.HathiWizardPages['Validate'].index
+            return wizard.HathiWizardPages['UpdateChecksums'].index
 
 
 class SelectDestination(QtHathiWizardPage):
@@ -250,47 +265,6 @@ class SelectDestination(QtHathiWizardPage):
         return False
 
 
-
-# TODO: REMOVE WHEN SAFE TO DO SO
-class PackageBrowser(QtHathiWizardPage):
-    page_title = "Package Browser"
-
-    def __init__(self, parent=None):
-        warnings.warn("use PackageBrowser2 instead", DeprecationWarning)
-        super().__init__(parent)
-        self.package_view = QtWidgets.QTreeView(self)
-        self.package_view.setContentsMargins(0, 0, 0, 0)
-        self.my_layout.addWidget(self.package_view)
-        self.my_layout.setContentsMargins(0, 0, 0, 0)
-
-    def load_model(self, root):
-        packages = PackagesList(root)
-        try:
-            for path in filter(lambda item: item.is_dir(), os.scandir(root)):
-                packages.add_package(path.path)
-            self.package_view.setEnabled(True)
-
-        except OSError as e:
-            self.package_view.setEnabled(False)
-            self.valid = False
-            error_message = QtWidgets.QMessageBox(self)
-            error_message.setIcon(QtWidgets.QMessageBox.Critical)
-            error_message.setText("Error")
-            error_message.setInformativeText(str(e))
-            error_message.setWindowTitle("Error")
-            error_message.show()
-        # self.model = PackageModel2(packages)
-        self.model = PackageModel(packages)
-
-    def initializePage(self):
-        super().initializePage()
-        root = self.field("RootLocation")
-        self.load_model(root)
-
-        self.package_view.setModel(self.model)
-        self.package_view.setItemDelegateForColumn(1, FileSelectionDelegate(self))
-
-
 class PackageBrowser2(QtHathiWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -314,7 +288,7 @@ class PackageBrowser2(QtHathiWizardPage):
         self.package_view.setItemDelegateForColumn(1, FileSelectionDelegate2(self))
 
     def load_model2(self, packages):
-        print("loaing model")
+        print("loading model")
         print(packages)
         self.model = PackageModel2(packages)
         # self.model = PackageModel(packages)
@@ -331,8 +305,33 @@ class PackageBrowser2(QtHathiWizardPage):
         self.data["package"] = self.model._packages
         return True
 
+    def nextId(self):
+        return wizard.HathiWizardPages['Prep'].index
 
-# FIXME: HathiTrust Brittlebooks skips previous step so there no data has been set yet
+
+class UpdateChecksums(HathiWizardProcess):
+    page_title = "Update checksum files"
+
+    def process(self):
+
+        self.logger.log("{} Processing".format(datetime.datetime.now()))
+        if self.data['workflow'] == "BrittleBooks":
+            processing_workflow = workflow.Workflow(workflow.BrittleBooksWorkflow())
+        else:
+            raise Exception("invalid workflow, {}".format(self.data['workflow']))
+
+        tasks = processing_workflow.update_checksums(self.data['package'])
+        processing_window = processing.ListCallableProgress(self, tasks=tasks, task_name="Updating checksums")
+        processing_window.logger = self.logger.log
+        try:
+            self.logger.log("Updating checksum started {}".format(datetime.datetime.now()))
+            processing_window.process()
+            self.logger.log("Updating checksum ended {}".format(datetime.datetime.now()))
+        except processing.ProcessCanceled:
+            return False
+        return True
+
+
 class Prep(HathiWizardProcess):
     page_title = "Prep"
 
@@ -343,15 +342,20 @@ class Prep(HathiWizardProcess):
         else:
             raise Exception("invalid workflow, {}".format(self.data['workflow']))
 
-        # foo = processing.ListProgress2(self, self.data['package'])  # ,
-        # foo.logger = lambda x: self.logger.log("Prepping: {}".format(x))
+        tasks = processing_workflow.prep(self.data['package'])
+        processing_window = processing.ListCallableProgress(self, tasks=tasks, task_name="Prepping")
+        processing_window.logger = self.logger.log
         try:
+
             self.logger.log("Prep started".format(datetime.datetime.now()))
-            processing_workflow.prep(self.data['package'])
+            processing_window.process()
             self.logger.log("Prep ended".format(datetime.datetime.now()))
         except processing.ProcessCanceled:
             return False
         return True
+
+    def nextId(self):
+        return wizard.HathiWizardPages['Validate'].index
 
 
 class EndPage(QtHathiWizardPage):
@@ -372,14 +376,36 @@ class Validate(HathiWizardProcess):
             processing_workflow = workflow.Workflow(workflow.BrittleBooksWorkflow())
         else:
             raise Exception("Unknown workflow, {}".format(self.data['workflow']))
+        tasks = processing_workflow.validate(self.data['package'])
+        processing_window = processing.ListCallableProgress(self, tasks=tasks, task_name="Validating")
+
+        processing_window.logger = self.logger.log
         try:
-            errors = processing_workflow.validate(self.data['package'])
-            message = "\n".join([error.message for error in errors])
-            self.logger.log(message)
+            processing_window.process()
+
         except processing.ProcessCanceled:
             return False
+        message = self.build_report(processing_window.results)
+
+        self.logger.log(message)
         return True
 
+    def build_report(self, results) -> str:
+        splitter = "*" * 20
+        title = "Validation report"
+        sorted_results = sorted(results, key=lambda r: r.source)
+        message_lines = []
+        for result in sorted_results:
+            message_lines.append(str(result))
+        report_data = "\n".join(message_lines)
+
+        return "\n" \
+               "{}\n" \
+               "{}\n" \
+               "{}\n" \
+               "{}\n" \
+               "{}\n" \
+            .format(splitter, title, splitter, report_data, splitter)
 
 
 class Zip(HathiWizardProcess):
@@ -389,16 +415,21 @@ class Zip(HathiWizardProcess):
         # foo = processing.ListProgress2(self, self.data['package'])
         # foo.logger = lambda x: self.logger.log("Zipping : {}".format(x))
         # lambda l: self.logger.log("{}{}".format(datetime.datetime.now(), l)))
+
         if self.data['workflow'] == "DS":
             processing_workflow = workflow.Workflow(workflow.DSWorkflow())
         elif self.data['workflow'] == "BrittleBooks":
             processing_workflow = workflow.Workflow(workflow.BrittleBooksWorkflow())
         else:
             raise Exception("Unknown workflow, {}".format(self.data['workflow']))
+        tasks = processing_workflow.zip(self.data['package'], self.data['export_destination'])
+        processing_window = processing.ListCallableProgress(self, tasks=tasks, task_name="Zipping")
+        processing_window.logger = self.logger.log
         try:
             self.logger.log("Zipping")
-            processing_workflow.zip(self.data['package'], destination=self.data['export_destination'])
-            self.logger.log("Zipping completed")
+            processing_window.process()
+            self.logger.log("Zipping completed.")
+            self.logger.log("Files can be found at {}".format(self.data['export_destination']))
         except processing.ProcessCanceled:
             return False
         return True

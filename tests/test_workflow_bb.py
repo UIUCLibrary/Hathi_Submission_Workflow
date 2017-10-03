@@ -1,6 +1,7 @@
 import pytest
 import os
 from hsw import workflow
+import itertools
 
 
 @pytest.fixture(scope="session")
@@ -55,15 +56,35 @@ def bb_collection(tmpdir_factory):
         os.path.join("1790923", "00000004.xml"),
     ]
     tests_files_dir = tmpdir_factory.mktemp("BB_Test")
-    for package_name in brittle_books_packages:
+    for package_name, package_files in itertools.groupby(brittle_books_package_files, key=lambda x: os.path.split(x)[0]):
+        print(package_name)
 
         new_package_folder = os.path.join(tests_files_dir, package_name)
         os.mkdir(new_package_folder)
 
-        with open(os.path.join(new_package_folder, "checksum.md5"), "w") as f:
+        with open(os.path.join(new_package_folder, "meta.yml"), "w") as f:
+            f.write("capture_date: 2016-06-21T08:00:00Z\n")
+            f.write("capture_agent: TRIGONIX\n")
+            f.write("scanner_user: TRIGONIX\n")
+            f.write("scanner_make: TRIGONIX\n")
+            f.write("scanner_model: TRIGO-C1\n")
+
+    for test_file in brittle_books_package_files:
+        new_test_item = tests_files_dir.join(test_file)
+        with open(new_test_item, "w") as f:
             pass
-        with open(os.path.join(new_package_folder, "marc.xml"), "w") as f:
-            f.write('\n<record xmlns="http://www.loc.gov/MARC21/slim" xsi:schemaLocation="http://www.loc.gov/MARC21/slim http://www.loc.gov/standards/marcxml/schema/MARC21slim.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">')
+    return str(tests_files_dir)
+
+
+def test_full_workflow(bb_collection):
+    print(bb_collection)
+    my_workflow = workflow.Workflow(workflow.BrittleBooksWorkflow())
+    new_package = my_workflow.build_package(bb_collection)
+
+    for package_object in new_package:
+        with open(os.path.join(package_object.metadata['path'], "marc.xml"), "w") as f:
+            f.write(
+                '\n<record xmlns="http://www.loc.gov/MARC21/slim" xsi:schemaLocation="http://www.loc.gov/MARC21/slim http://www.loc.gov/standards/marcxml/schema/MARC21slim.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">')
             f.write('\n  <leader>00616nam a2200181 a 4500</leader>')
             f.write('\n  <controlfield tag="001">1251150</controlfield>')
             f.write('\n  <controlfield tag="005">20020415162036.0</controlfield>')
@@ -115,26 +136,13 @@ def bb_collection(tmpdir_factory):
             f.write('\n</record>')
             f.write('\n<?query @attr 1=12 "1251150" ?>')
             f.write('\n<?count 1 ?>')
-        with open(os.path.join(new_package_folder, "meta.yml"), "w") as f:
-            f.write("capture_date: 2016-06-21T08:00:00Z\n")
-            f.write("capture_agent: TRIGONIX\n")
-            f.write("scanner_user: TRIGONIX\n")
-            f.write("scanner_make: TRIGONIX\n")
-            f.write("scanner_model: TRIGO-C1\n")
 
+    for task in my_workflow.update_checksums(new_package):
+        task()
 
-    for test_file in brittle_books_package_files:
-        new_test_item = tests_files_dir.join(test_file)
-        with open(new_test_item, "w") as f:
-            pass
-    return str(tests_files_dir)
-
-
-def test_prep(bb_collection):
-    print(bb_collection)
-    my_workflow = workflow.Workflow(workflow.BrittleBooksWorkflow())
-    new_package = my_workflow.build_package(bb_collection)
-    errors = my_workflow.validate(new_package)
+    errors = []
+    for task in my_workflow.validate(new_package):
+        errors += task()
     for error in errors:
         print(error)
     assert len(errors) == 0
