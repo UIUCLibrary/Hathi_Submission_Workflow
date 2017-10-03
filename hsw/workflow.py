@@ -1,7 +1,10 @@
 import abc
+
+import os
+
 from . import collection
 from . import collection_builder
-from pyhathiprep import package_creater
+from pyhathiprep import package_creater, checksum
 from hathi_validate import process as validate_process
 from hathizip import process as zip_process
 import typing
@@ -15,6 +18,10 @@ class AbsWorkflow(metaclass=abc.ABCMeta):
     @staticmethod
     def prep(package) -> typing.List[typing.Callable]:
         pass
+
+    @staticmethod
+    def update_checksums(package) -> typing.List[typing.Callable]:
+        return []
 
     @staticmethod
     def validate(package) -> typing.List[typing.Callable]:
@@ -44,13 +51,28 @@ class BrittleBooksWorkflow(AbsWorkflow):
 
     @staticmethod
     def validate(package) -> typing.List[typing.Callable]:
-        # errors = []
         closures = []
         for package_object in package:
             def create_task(path):
                 return validate_process.process_directory(path, require_page_data=False)
 
             closures.append(lambda path=package_object.metadata['path']: create_task(path))
+        return closures
+
+    @staticmethod
+    def update_checksums(package: collection.Package) -> typing.List[typing.Callable]:
+        closures = []
+        for package_object in package:
+            package_object_path = package_object.metadata["path"]
+
+            def create_task(path):
+                checksum_file = os.path.join(path, "checksum.md5")
+                if os.path.exists(checksum_file):
+                    os.remove(checksum_file)
+                checksum_report_data = checksum.create_checksum_report(path)
+                with open(checksum_file, "w") as f:
+                    f.write(checksum_report_data)
+            closures.append(lambda path=package_object_path: create_task(path))
         return closures
 
 
@@ -89,3 +111,6 @@ class Workflow:
 
     def zip(self, package, destination) -> typing.List[typing.Callable]:
         return self._template.zip(package, destination)
+
+    def update_checksums(self, package) -> typing.List[typing.Callable]:
+        return self._template.update_checksums(package)
