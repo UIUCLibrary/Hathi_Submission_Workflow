@@ -202,7 +202,7 @@ class SelectRoot(QtHathiWizardPage):
         if self.data['workflow'] == "DS":
             return wizard.HathiWizardPages['PackageBrowser'].index
         else:
-            return wizard.HathiWizardPages['Validate'].index
+            return wizard.HathiWizardPages['UpdateChecksums'].index
 
 
 class SelectDestination(QtHathiWizardPage):
@@ -305,6 +305,32 @@ class PackageBrowser2(QtHathiWizardPage):
         self.data["package"] = self.model._packages
         return True
 
+    def nextId(self):
+        return wizard.HathiWizardPages['Prep'].index
+
+
+class UpdateChecksums(HathiWizardProcess):
+    page_title = "Update checksum files"
+
+    def process(self):
+
+        self.logger.log("{} Processing".format(datetime.datetime.now()))
+        if self.data['workflow'] == "BrittleBooks":
+            processing_workflow = workflow.Workflow(workflow.BrittleBooksWorkflow())
+        else:
+            raise Exception("invalid workflow, {}".format(self.data['workflow']))
+
+        tasks = processing_workflow.update_checksums(self.data['package'])
+        processing_window = processing.ListCallableProgress(self, tasks=tasks, task_name="Updating checksums")
+        processing_window.logger = self.logger.log
+        try:
+            self.logger.log("Updating checksum started {}".format(datetime.datetime.now()))
+            processing_window.process()
+            self.logger.log("Updating checksum ended {}".format(datetime.datetime.now()))
+        except processing.ProcessCanceled:
+            return False
+        return True
+
 
 class Prep(HathiWizardProcess):
     page_title = "Prep"
@@ -316,8 +342,6 @@ class Prep(HathiWizardProcess):
         else:
             raise Exception("invalid workflow, {}".format(self.data['workflow']))
 
-        # foo = processing.ListProgress2(self, self.data['package'])  # ,
-        # foo.logger = lambda x: self.logger.log("Prepping: {}".format(x))
         tasks = processing_workflow.prep(self.data['package'])
         processing_window = processing.ListCallableProgress(self, tasks=tasks, task_name="Prepping")
         processing_window.logger = self.logger.log
@@ -329,6 +353,9 @@ class Prep(HathiWizardProcess):
         except processing.ProcessCanceled:
             return False
         return True
+
+    def nextId(self):
+        return wizard.HathiWizardPages['Validate'].index
 
 
 class EndPage(QtHathiWizardPage):
