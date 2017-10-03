@@ -78,7 +78,7 @@ class Workflow:
     def __init__(self, workflow: AbsWorkflow) -> None:
         self._template = workflow
 
-    def build_package(self, root):
+    def build_package(self, root) -> collection.Package:
         return self._template.build_collection(root)
 
     def prep(self, package) -> typing.List[typing.Callable]:
