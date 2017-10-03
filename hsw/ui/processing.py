@@ -67,6 +67,8 @@ class DummyProgress(ProcessProgress):
     def current_task_index(self) -> int:
         return self._counter
 
+# TODO: Create a worker class
+
 class ListCallableProgress(ProcessProgress):
     def __init__(self, parent, tasks, task_name="processing", logger=None):
         self.task_name = task_name
