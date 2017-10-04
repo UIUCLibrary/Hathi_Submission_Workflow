@@ -54,20 +54,20 @@ goto :eof
 goto :eof
 
 :venvactivate
-	call .env\Scripts\activate.bat
+	call venv\Scripts\activate.bat
 goto :eof
 
 :venv
-    if exist ".env" echo "%CD%\.env" folder already exists. To activate virtualenv, use .env\Scripts\activate.bat & goto :eof
+    if exist "venv" echo "%CD%\venv" folder already exists. To activate virtualenv, use venv\Scripts\activate.bat & goto :eof
 
-    echo Creating a local virtualenv in "%CD%\.env"
+    echo Creating a local virtualenv in "%CD%\venv"
     setlocal
 
-    REM Create a new virtualenv in the .env path
-    py -m venv .env
+    REM Create a new virtualenv in the venv path
+    py -m venv venv
 
     REM activate the virtualenv
-    call .env\Scripts\activate.bat
+    call venv\Scripts\activate.bat
 
     REM Install development requirements inside the newly created virtualenv
     pip install -r requirements.txt
@@ -75,7 +75,7 @@ goto :eof
 goto :eof
 
 :venvclean
-    if exist ".env" echo removing .env & RD /S /Q .env
+    if exist "venv" echo removing venv & RD /S /Q venv
 goto :eof
 
 :docs
@@ -83,7 +83,7 @@ goto :eof
     setlocal
 
     REM if the virtualenv doesn't already exists, create it first
-    if exist ".env" call .env\Scripts\activate.bat
+    if exist "venv" call venv\Scripts\activate.bat
 
     REM Use the custom build_sphinx target to generate the documentations
     python setup.py build_sphinx
@@ -98,10 +98,10 @@ goto :eof
     set "VSCMD_START_DIR=%CD%"
 
     REM if the virtualenv doesn't already exists, create it first
-    if not exist ".env" call :venv
+    if not exist "venv" call :venv
 
     REM Load the virtualenv
-    if exist ".env" call .env\Scripts\activate.bat
+    if exist "venv" call venv\Scripts\activate.bat
 
     REM Run with the x64 environment
     call "%vs140comntools%..\..\VC\vcvarsall.bat" x86_amd64
@@ -117,7 +117,7 @@ goto :eof
 
 :clean
     setlocal
-	if exist ".env" call .env\Scripts\activate.bat
+	if exist "venv" call venv\Scripts\activate.bat
     python setup.py clean --all
     
     REM Run with the x64 environment
