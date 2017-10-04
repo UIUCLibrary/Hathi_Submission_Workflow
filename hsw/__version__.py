@@ -1,5 +1,5 @@
 __title__ = 'hsw'
-__version__ = '0.0.2'
+__version__ = '0.0.3'
 __url__ = 'http://http://www.library.illinois.edu/dccdocs/hathi_submission_workflow'
 __author__ = 'University of Illinois at Urbana Champaign'
 __author_email__ = 'hborcher@illinois.edu'

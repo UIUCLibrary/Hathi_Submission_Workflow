@@ -1,10 +1,9 @@
 from PyQt5.QtWidgets import QWidget, QTreeView
-from .ui_packages import Ui_PackagesDialog
 from .packages_model import PackageModel, PackageModel2
 from hsw.package_list import PackagesList
 from .package_files_delegate import FileSelectionDelegate2
 
-class PackageBrowser(QWidget, Ui_PackagesDialog):
+class PackageBrowser(QWidget):
     def __init__(self, packages: PackagesList) -> None:
         super().__init__()
         self.setupUi(self)
