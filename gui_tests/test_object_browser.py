@@ -18,7 +18,7 @@ class HathiFilesWizard(QtWidgets.QWizard):
         self.addPage(HathiWizardPages["PackageBrowser"].wizard_page(self))
         self.addPage(HathiWizardPages["EndPage"].wizard_page(self))
         self.data["root"] = ROOT
-        workflow_strat = collection_builder.DSStrategy()
+        workflow_strat = workflow.DSWorkflow()
 
         # package_builder = collection_builder.BuildPackage(workflow_strat)
         package_builder = workflow.Workflow(workflow_strat)
