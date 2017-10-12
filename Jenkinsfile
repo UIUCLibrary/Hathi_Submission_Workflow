@@ -31,10 +31,11 @@ pipeline {
                 script {
                     // def result = jiraSearch "issue = $params.JIRA_ISSUE"
                     def result = jiraIssueSelector(issueSelector: [$class: 'JqlIssueSelector', jql: "issue = $params.JIRA_ISSUE"])
-                    if(result){
-                        echo "${result.size()}"
-                    } else {
+                    if(result.isEmpty()){
                         error("Jira issue $params.JIRA_ISSUE not found")
+
+                    } else {
+                        echo "${result.size()}"
                     }
                 }
 
