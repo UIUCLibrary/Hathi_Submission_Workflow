@@ -36,9 +36,7 @@ pipeline {
                         error("Jira issue $params.JIRA_ISSUE not found")
 
                     } else {
-                        // echo "${result.size()}"
-                        result.each{ s ->
-                            echo "${s.getClass()}"
+                        echo "Located ${result}"
                         }
                     }
                 }
