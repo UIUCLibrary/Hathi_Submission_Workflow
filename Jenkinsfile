@@ -30,7 +30,11 @@ pipeline {
                 echo "Finding Jira issue $params.JIRA_ISSUE"
                 script {
                     def foo = jiraSearch "issue = $params.JIRA_ISSUE"
-                    echo "$foo"
+                    if(foo){
+                        echo "$foo"
+                    } else {
+                        echo "Nothing found"
+                    }
                 }
 
             }
