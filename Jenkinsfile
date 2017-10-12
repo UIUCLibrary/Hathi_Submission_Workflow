@@ -218,6 +218,10 @@ pipeline {
                         echo deployment_request
                         writeFile file: "deployment_request.txt", text: deployment_request
                         archiveArtifacts artifacts: "deployment_request.txt"
+                        if(params.JIRA_ISSUE != ""){
+                            jiraComment body: "Jenkins automated message: Deployment request has been issue.", issueKey: "${params.JIRA_ISSUE}"
+
+                        }
 
                     }
                 }
@@ -256,7 +260,7 @@ pipeline {
                 success {
                     script {
                         if(params.JIRA_ISSUE != ""){
-                                jiraComment body: "A new package for DevPi was sent to http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}", issueKey: "${params.JIRA_ISSUE}"
+                                jiraComment body: "Jenkins automated message: A new python package for DevPi was sent to http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}", issueKey: "${params.JIRA_ISSUE}"
 
                             }
                     }
@@ -274,6 +278,16 @@ pipeline {
                 script {
                     updateOnlineDocs url_subdomain: params.URL_SUBFOLDER, stash_name: "HTML Documentation"
 
+                }
+            }
+            post {
+                success {
+                    script {
+                        if(params.JIRA_ISSUE != ""){
+                            jiraComment body: "Jenkins automated message: Online documentation has been updated.", issueKey: "${params.JIRA_ISSUE}"
+
+                        }
+                    }
                 }
             }
         }
