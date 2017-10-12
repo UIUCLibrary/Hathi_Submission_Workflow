@@ -218,6 +218,7 @@ pipeline {
                         echo deployment_request
                         writeFile file: "deployment_request.txt", text: deployment_request
                         archiveArtifacts artifacts: "deployment_request.txt"
+
                     }
                 }
             }
@@ -250,6 +251,16 @@ pipeline {
                     bat "devpi test hsw"
                 }
 
+            }
+            post {
+                success {
+                    script {
+                        if(params.JIRA_ISSUE != ""){
+                                jiraComment body: "A new package for DevPi was sent to http://devpy.library.illinois.edu/${DEVPI_USERNAME}/${env.BRANCH_NAME}", issueKey: "${params.JIRA_ISSUE}"
+
+                            }
+                    }
+                }
             }
         }
         stage("Update online documentation") {
