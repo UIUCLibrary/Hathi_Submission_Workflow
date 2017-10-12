@@ -37,7 +37,7 @@ pipeline {
                     } else {
                         // echo "${result.size()}"
                         result.each{ s ->
-                            echo "${s}"
+                            echo "${s.getClass()}"
                         }
                     }
                 }
