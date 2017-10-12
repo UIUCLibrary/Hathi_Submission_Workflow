@@ -256,7 +256,7 @@ pipeline {
                 success {
                     script {
                         if(params.JIRA_ISSUE != ""){
-                                jiraComment body: "A new package for DevPi was sent to http://devpy.library.illinois.edu/${DEVPI_USERNAME}/${env.BRANCH_NAME}", issueKey: "${params.JIRA_ISSUE}"
+                                jiraComment body: "A new package for DevPi was sent to http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}", issueKey: "${params.JIRA_ISSUE}"
 
                             }
                     }
