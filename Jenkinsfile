@@ -33,7 +33,7 @@ pipeline {
                     if(foo){
                         echo "$foo"
                     } else {
-                        echo "Nothing found"
+                        error("%foo not found")
                     }
                 }
 
