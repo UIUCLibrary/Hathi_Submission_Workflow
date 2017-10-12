@@ -283,8 +283,9 @@ pipeline {
             post {
                 success {
                     script {
+                        echo "https://www.library.illinois.edu/dccdocs/${params.URL_SUBFOLDER} updated successfully."
                         if(params.JIRA_ISSUE != ""){
-                            jiraComment body: "Jenkins automated message: Online documentation has been updated.", issueKey: "${params.JIRA_ISSUE}"
+                            jiraComment body: "Jenkins automated message: Online documentation has been updated. https://www.library.illinois.edu/dccdocs/${params.URL_SUBFOLDER}", issueKey: "${params.JIRA_ISSUE}"
 
                         }
                     }
