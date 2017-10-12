@@ -35,7 +35,10 @@ pipeline {
                         error("Jira issue $params.JIRA_ISSUE not found")
 
                     } else {
-                        echo "${result.size()}"
+                        // echo "${result.size()}"
+                        result.forEach((s) -> {
+                            echo "${s}"
+                        }
                     }
                 }
 
