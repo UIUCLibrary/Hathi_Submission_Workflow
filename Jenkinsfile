@@ -17,6 +17,8 @@ pipeline {
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: true, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
         booleanParam(name: "UPDATE_DOCS", defaultValue: false, description: "Update online documentation")
         string(name: 'URL_SUBFOLDER', defaultValue: "hathi_submission_workflow", description: 'The directory that the docs should be saved under')
+        string(name: 'JIRA_ISSUE', defaultValue: "", description: 'Jira task to generate about updates.')
+
     }
     stages {
 
