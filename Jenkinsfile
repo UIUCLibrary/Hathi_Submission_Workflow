@@ -29,11 +29,11 @@ pipeline {
             steps {
                 echo "Finding Jira issue $params.JIRA_ISSUE"
                 script {
-                    def foo = jiraSearch "issue = $params.JIRA_ISSUE"
+                    def result = jiraSearch "issue = $params.JIRA_ISSUE"
                     if(foo){
-                        echo "$foo"
+                        echo "$result"
                     } else {
-                        error("%foo not found")
+                        error("Jira issue $params.JIRA_ISSUE not found")
                     }
                 }
 
