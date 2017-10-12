@@ -24,7 +24,7 @@ pipeline {
         stage("Testing Jira issue"){
             agent any
             when {
-                expression {param.JIRA_ISSUE != ""}
+                expression {params.JIRA_ISSUE != ""}
             }
             steps {
                 echo "Finding Jira issue $param.JIRA_ISSUE"
