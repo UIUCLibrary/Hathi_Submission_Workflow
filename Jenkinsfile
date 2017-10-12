@@ -27,7 +27,7 @@ pipeline {
                 expression {params.JIRA_ISSUE != ""}
             }
             steps {
-                echo "Finding Jira issue $param.JIRA_ISSUE"
+                echo "Finding Jira issue $params.JIRA_ISSUE"
             }
         }
         stage("Cloning and Generating Source") {
