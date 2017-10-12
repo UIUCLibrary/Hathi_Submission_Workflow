@@ -15,6 +15,7 @@ class BuildPyCommand(build_py):
             uic.compileUi(uifile=os.path.join(building_path, "ui", "ui_packages.ui"), pyfile=ui_writer)
         build_py.run(self)
 
+
 metadata_file = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'hsw', '__version__.py')
 metadata = dict()
 with open(metadata_file, 'r', encoding='utf-8') as f:
@@ -32,7 +33,12 @@ setup(
     author=metadata["__author__"],
     author_email=metadata["__author_email__"],
     description=metadata["__description__"],
-    install_requires=["pyqt5", "pyhathiprep", "HathiValidate", "HathiZip"],
+    install_requires=[
+        "pyqt5",
+        "pyhathiprep >= 0.1.3",
+        "HathiValidate",
+        "HathiZip"
+    ],
     long_description=readme,
     test_suite="tests",
     setup_requires=[

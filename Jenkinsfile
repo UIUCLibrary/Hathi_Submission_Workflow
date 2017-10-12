@@ -17,9 +17,31 @@ pipeline {
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: true, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
         booleanParam(name: "UPDATE_DOCS", defaultValue: false, description: "Update online documentation")
         string(name: 'URL_SUBFOLDER', defaultValue: "hathi_submission_workflow", description: 'The directory that the docs should be saved under')
+        string(name: 'JIRA_ISSUE', defaultValue: "", description: 'Jira task to generate about updates.')
+
     }
     stages {
+        stage("Testing Jira issue"){
+            agent any
+            when {
+                expression {params.JIRA_ISSUE != ""}
+            }
+            steps {
+                echo "Finding Jira issue $params.JIRA_ISSUE"
+                script {
+                    // def result = jiraSearch "issue = $params.JIRA_ISSUE"
+                    def result = jiraIssueSelector(issueSelector: [$class: 'JqlIssueSelector', jql: "issue = $params.JIRA_ISSUE"])
+                    if(result.isEmpty()){
+                        echo "Jira issue $params.JIRA_ISSUE not found"
+                        error("Jira issue $params.JIRA_ISSUE not found")
 
+                    } else {
+                        echo "Located ${result}"
+                    }
+                }
+
+            }
+        }
         stage("Cloning and Generating Source") {
             agent {
                 label "Windows"
@@ -196,6 +218,11 @@ pipeline {
                         echo deployment_request
                         writeFile file: "deployment_request.txt", text: deployment_request
                         archiveArtifacts artifacts: "deployment_request.txt"
+                        if(params.JIRA_ISSUE != ""){
+                            jiraComment body: "Jenkins automated message: Deployment request has been issue.", issueKey: "${params.JIRA_ISSUE}"
+
+                        }
+
                     }
                 }
             }
@@ -229,6 +256,16 @@ pipeline {
                 }
 
             }
+            post {
+                success {
+                    script {
+                        if(params.JIRA_ISSUE != ""){
+                                jiraComment body: "Jenkins automated message: A new python package for DevPi was sent to http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}", issueKey: "${params.JIRA_ISSUE}"
+
+                            }
+                    }
+                }
+            }
         }
         stage("Update online documentation") {
             agent any
@@ -241,6 +278,16 @@ pipeline {
                 script {
                     updateOnlineDocs url_subdomain: params.URL_SUBFOLDER, stash_name: "HTML Documentation"
 
+                }
+            }
+            post {
+                success {
+                    script {
+                        if(params.JIRA_ISSUE != ""){
+                            jiraComment body: "Jenkins automated message: Online documentation has been updated.", issueKey: "${params.JIRA_ISSUE}"
+
+                        }
+                    }
                 }
             }
         }
