@@ -37,7 +37,6 @@ pipeline {
 
                     } else {
                         echo "Located ${result}"
-                        }
                     }
                 }
 
