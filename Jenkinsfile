@@ -38,7 +38,7 @@ pipeline {
                         // echo "${result.size()}"
                         result.forEach((s) -> {
                             echo "${s}"
-                        }
+                        })
                     }
                 }
 
