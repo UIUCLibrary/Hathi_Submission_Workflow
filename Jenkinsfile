@@ -28,6 +28,7 @@ pipeline {
             }
             steps {
                 echo "Finding Jira issue $params.JIRA_ISSUE"
+                jiraSearch "issue = $params.JIRA_ISSUE"
             }
         }
         stage("Cloning and Generating Source") {
