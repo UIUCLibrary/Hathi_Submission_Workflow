@@ -245,11 +245,11 @@ pipeline {
                     bat "devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}"
                     script {
                         try{
-                            bat "devpi upload --with-docs"
+                            bat "${tool 'Python3.6.3_Win64'} -m devpi upload --with-docs"
 
                         } catch (exc) {
                             echo "Unable to upload to devpi with docs. Trying without"
-                            bat "devpi upload"
+                            bat "${tool 'Python3.6.3_Win64'} -m devpi upload"
                         }
                     }
                     bat "devpi test hsw"
