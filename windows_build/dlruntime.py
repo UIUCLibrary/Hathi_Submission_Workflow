@@ -21,6 +21,10 @@ class ARCHITECTURES(enum.Enum):
 
 
 RUNTIMES = {
+    ("3.6.3", ARCHITECTURES.x64): Runtime("https://www.python.org/ftp/python/3.6.3/python-3.6.3-embed-amd64.zip",
+                                          "b1daa2a41589d7504117991104b96fe5"),
+    ("3.6.3", ARCHITECTURES.x86): Runtime("https://www.python.org/ftp/python/3.6.3/python-3.6.3-embed-win32.zip",
+                                          "cf1c75ad7ccf9dec57ba7269198fd56b"),
     ("3.6.2", ARCHITECTURES.x64): Runtime("https://www.python.org/ftp/python/3.6.2/python-3.6.2-embed-amd64.zip",
                                           "0fdfe9f79e0991815d6fc1712871c17f"),
     ("3.6.2", ARCHITECTURES.x86): Runtime("https://www.python.org/ftp/python/3.6.2/python-3.6.2-embed-win32.zip",

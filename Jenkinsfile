@@ -50,7 +50,7 @@ pipeline {
             steps {
                 deleteDir()
                 checkout scm
-                virtualenv python_path: env.PYTHON3, requirements_file: "requirements.txt", windows: true, "python setup.py build"
+                virtualenv python_path: "${tool 'Python3.6.3_Win64'}", requirements_file: "requirements.txt", windows: true, "python setup.py build"
                 stash includes: '**', name: "Source", useDefaultExcludes: false
 
                 stash includes: 'deployment.yml', name: "Deployment"
@@ -155,7 +155,7 @@ pipeline {
                                 deleteDir()
                                 unstash "Source"
                                 bat "call make.bat release"
-//                                bat """${env.PYTHON3} -m venv .env
+//                                bat """${tool 'Python3.6.3_Win64'} -m venv .env
 //                                        call .env/Scripts/activate.bat
 //                                        pip install --upgrade pip setuptools
 //                                        pip install -r requirements.txt
@@ -176,13 +176,13 @@ pipeline {
                             node(label: "Windows") {
                                 deleteDir()
                                 unstash "Source"
-                                bat "${env.PYTHON3} setup.py bdist_wheel --universal"
+                                bat "${tool 'Python3.6.3_Win64'} setup.py bdist_wheel"
                                 archiveArtifacts artifacts: "dist/**", fingerprint: true
                             }
                         },
 
                         "Source Release": {
-                            createSourceRelease(env.PYTHON3, "Source")
+                                createSourceRelease(env.PYTHON3, "Source")
                         }
                 )
             }
@@ -241,15 +241,15 @@ pipeline {
                 unstash "Source"
                 bat "devpi use http://devpy.library.illinois.edu"
                 withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-                    bat "devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-                    bat "devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}"
+                    bat "${tool 'Python3.6.3_Win64'} -m devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                    bat "${tool 'Python3.6.3_Win64'} -m devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}"
                     script {
                         try{
-                            bat "devpi upload --with-docs"
+                            bat "${tool 'Python3.6.3_Win64'} -m devpi upload --with-docs"
 
                         } catch (exc) {
                             echo "Unable to upload to devpi with docs. Trying without"
-                            bat "devpi upload"
+                            bat "${tool 'Python3.6.3_Win64'} -m devpi upload"
                         }
                     }
                     bat "devpi test hsw"
