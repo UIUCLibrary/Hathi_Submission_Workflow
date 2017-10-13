@@ -176,7 +176,7 @@ pipeline {
                             node(label: "Windows") {
                                 deleteDir()
                                 unstash "Source"
-                                bat "${env.PYTHON3} setup.py bdist_wheel --universal"
+                                bat "${env.PYTHON3} setup.py bdist_wheel"
                                 archiveArtifacts artifacts: "dist/**", fingerprint: true
                             }
                         },
