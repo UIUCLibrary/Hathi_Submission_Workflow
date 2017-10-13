@@ -182,9 +182,7 @@ pipeline {
                         },
 
                         "Source Release": {
-                            script {
                                 createSourceRelease(env.PYTHON3, "Source")
-                            }
                         }
                 )
             }
