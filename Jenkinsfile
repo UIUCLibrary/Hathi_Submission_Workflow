@@ -241,8 +241,8 @@ pipeline {
                 unstash "Source"
                 bat "devpi use http://devpy.library.illinois.edu"
                 withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-                    bat "devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-                    bat "devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}"
+                    bat "${tool 'Python3.6.3_Win64'} -m devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                    bat "${tool 'Python3.6.3_Win64'} -m devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}"
                     script {
                         try{
                             bat "${tool 'Python3.6.3_Win64'} -m devpi upload --with-docs"
