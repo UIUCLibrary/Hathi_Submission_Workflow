@@ -182,7 +182,10 @@ pipeline {
                         },
 
                         "Source Release": {
-                            createSourceRelease("${tool 'Python3.6.3_Win64'}", "Source")
+                            script {
+                                def python_path = tool 'Python3.6.3_Win64'
+                                createSourceRelease("${python_path}", "Source")
+                            }
                         }
                 )
             }
