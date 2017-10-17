@@ -113,7 +113,7 @@ pipeline {
                                 runner.windows = true
                                 // runner.windows = false
                                 runner.stash = "Source"
-                                // runner.label = "!Windows"
+                                // runner.label = "Linux"
                                 runner.label = "Windows"
                                 runner.post = {
                                     dir('.tox/dist/html/') {
@@ -130,7 +130,7 @@ pipeline {
                                 runner.env = "mypy"
                                 runner.windows = false
                                 runner.stash = "Source"
-                                runner.label = "!Windows"
+                                runner.label = "Linux"
                                 runner.post = {
                                     junit 'mypy.xml'
                                 }
@@ -151,7 +151,7 @@ pipeline {
             steps {
                 parallel(
                         "Windows Standalone": {
-                            node(label: "Windows") {
+                            node(label: "Windows&&VS2015") {
                                 deleteDir()
                                 unstash "Source"
                                 bat "call make.bat release"
