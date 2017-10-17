@@ -230,7 +230,7 @@ pipeline {
         stage("Deploying to Devpi") {
             agent {
                 node {
-                    label 'Windows'
+                    label 'Windows&&DevPi'
                 }
             }
             when {
