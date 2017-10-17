@@ -153,7 +153,7 @@ pipeline {
             steps {
                 parallel(
                         "Windows Standalone": {
-                            node(label: "Windows&&VS2015") {
+                            node(label: "Windows&&VS2015&&DevPi") {
                                 deleteDir()
                                 unstash "Source"
                                 bat "call make.bat release"
