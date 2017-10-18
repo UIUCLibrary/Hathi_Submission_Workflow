@@ -3,7 +3,9 @@
 import org.ds.*
 
 pipeline {
-    agent any
+    agent {
+        label "Windows&&DevPi"
+    }
     environment {
         mypy_args = "--junit-xml=mypy.xml"
         pytest_args = "--junitxml=reports/junit-{env:OS:UNKNOWN_OS}-{envname}.xml --junit-prefix={env:OS:UNKNOWN_OS}  --basetemp={envtmpdir}"
@@ -151,7 +153,7 @@ pipeline {
             steps {
                 parallel(
                         "Windows Standalone": {
-                            node(label: "Windows&&VS2015") {
+                            node(label: "Windows&&VS2015&&DevPi") {
                                 deleteDir()
                                 unstash "Source"
                                 bat "call make.bat release"
@@ -182,7 +184,16 @@ pipeline {
                         },
 
                         "Source Release": {
-                                createSourceRelease(env.PYTHON3, "Source")
+                            node(label: "Windows") {
+                                deleteDir()
+                                unstash "Source"
+                                bat "${tool 'Python3.6.3_Win64'} setup.py sdist"
+                                archiveArtifacts artifacts: "dist/**", fingerprint: true
+                            }
+//                            node(label: Linux) {
+//                                createSourceRelease(env.PYTHON3, "Source")
+//                            }
+
                         }
                 )
             }
