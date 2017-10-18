@@ -184,9 +184,15 @@ pipeline {
                         },
 
                         "Source Release": {
-                            node(label: Linux) {
-                                createSourceRelease(env.PYTHON3, "Source")
+                            node(label: "Windows") {
+                                deleteDir()
+                                unstash "Source"
+                                bat "${tool 'Python3.6.3_Win64'} setup.py sdist"
+                                archiveArtifacts artifacts: "dist/**", fingerprint: true
                             }
+//                            node(label: Linux) {
+//                                createSourceRelease(env.PYTHON3, "Source")
+//                            }
 
                         }
                 )
