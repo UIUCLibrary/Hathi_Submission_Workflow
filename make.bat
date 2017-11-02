@@ -1,23 +1,28 @@
 @echo off
 
 
-if [%1] == []                goto main
-if "%~1" == "install-dev"    goto install-dev
-if "%~1" == "gui"            goto gui
-if "%~1" == "docs"           goto docs
-if "%~1" == "venv"           goto venv
-if "%~1" == "venvclean"      goto venvclean
-if "%~1" == "test"           goto test
-if "%~1" == "release"        goto release
-if "%~1" == "clean"          goto clean
-if "%~1" == "help"           goto help
+if [%1] == []                call:main          && goto:eof
+if "%~1" == "install-dev"    call:install-dev   && goto:eof
+if "%~1" == "gui"            call:gui           && goto:eof
+if "%~1" == "docs"           call:docs %EXTRA_ARGS%     && goto:eof
+if "%~1" == "venv"           call:venv          && goto:eof
+if "%~1" == "venvclean"      call:venvclean     && goto:eof
+if "%~1" == "test"           call:test          && goto:eof
+if "%~1" == "release"        call:release       && goto:eof
+if "%~1" == "clean"          call:clean         && goto:eof
+if "%~1" == "help"           call:help          && goto:eof
+
+if not %ERRORLEVEL% == 0 exit /b %ERRORLEVEL%
 goto :error %*
 
 EXIT /B 0
 
 :main
-    call :install-dev
-    call :gui
+    :: call:install-dev
+    call:gui
+    call:sdist
+    call:wheel
+    call:docs --build-dir dist/docs
 goto :eof
 
 :help
@@ -33,6 +38,7 @@ goto :eof
 goto :eof
 
 :gui
+    call:install-dev
     setlocal
     echo Converting Qt5 .ui files located in the ./ui path into .py files:
     for %%f in (
@@ -44,19 +50,38 @@ goto :eof
     endlocal
 goto :eof
 
+::=============================================================================
+:: Setup a development environment
+::=============================================================================
 :install-dev
+    call:venv
+    setlocal
     echo Installing development requirements
-    pip install -r requirements.txt
+    call venv\Scripts\activate.bat
+    pip install -r requirements-dev.txt --upgrade-strategy only-if-needed
+    pip install -r requirements.txt --upgrade-strategy only-if-needed
+    endlocal
 goto :eof
 
+
+::=============================================================================
+:: Run unit tests
+::=============================================================================
 :test
-    python setup.py test
+    call:install-dev
+    setlocal
+    call venv\Scripts\activate.bat && python setup.py test
+    endlocal
 goto :eof
 
 :venvactivate
 	call venv\Scripts\activate.bat
 goto :eof
 
+
+::=============================================================================
+:: Build a virtualenv sandbox for development
+::=============================================================================
 :venv
     if exist "venv" echo "%CD%\venv" folder already exists. To activate virtualenv, use venv\Scripts\activate.bat & goto :eof
 
@@ -65,29 +90,25 @@ goto :eof
 
     REM Create a new virtualenv in the venv path
     py -m venv venv
-
-    REM activate the virtualenv
-    call venv\Scripts\activate.bat
-
-    REM Install development requirements inside the newly created virtualenv
-    pip install -r requirements.txt
     endlocal
 goto :eof
 
+
+::=============================================================================
+:: Remove virtualenv sandbox
+::=============================================================================
 :venvclean
     if exist "venv" echo removing venv & RD /S /Q venv
 goto :eof
 
+::=============================================================================
+:: Build html documentation
+::=============================================================================
 :docs
+    call:install-dev
     echo Creating docs
     setlocal
-
-    REM if the virtualenv doesn't already exists, create it first
-    if exist "venv" call venv\Scripts\activate.bat
-
-    REM Use the custom build_sphinx target to generate the documentations
-    python setup.py build_sphinx
-
+    call venv\Scripts\activate.bat && python setup.py build_sphinx %*
     endlocal
 goto :eof
 
@@ -115,6 +136,30 @@ goto :eof
 
 goto :eof
 
+::=============================================================================
+:: Create a wheel distribution
+::=============================================================================
+:wheel
+    call:install-dev
+    setlocal
+    call venv\Scripts\activate.bat && python setup.py bdist_wheel
+    endlocal
+goto :eof
+
+
+::=============================================================================
+:: Create a source distribution
+::=============================================================================
+:sdist
+    call:install-dev
+    setlocal
+    call venv\Scripts\activate.bat && python setup.py sdist
+    endlocal
+goto :eof
+
+::=============================================================================
+:: Clean up any generated files
+::=============================================================================
 :clean
     setlocal
 	if exist "venv" call venv\Scripts\activate.bat
