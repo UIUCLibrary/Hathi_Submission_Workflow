@@ -52,7 +52,13 @@ pipeline {
             steps {
                 deleteDir()
                 checkout scm
-                virtualenv python_path: "${tool 'Python3.6.3_Win64'}", requirements_file: "requirements.txt", windows: true, "python setup.py build"
+                // virtualenv python_path: "${tool 'Python3.6.3_Win64'}", requirements_file: "requirements.txt", windows: true, "python setup.py build"
+                bat """${tool 'Python3.6.3_Win64'} -m venv venv
+                    call venv\\Scripts\\activate.bat
+                    pip install -r requirements.txt
+                    pip install -r requirements-dev.txt
+                    python setup.py build
+"""
                 stash includes: '**', name: "Source", useDefaultExcludes: false
 
                 stash includes: 'deployment.yml', name: "Deployment"
@@ -367,6 +373,37 @@ pipeline {
                 }
             }
         }
+        stage("Release to DevPi production") {
+            when {
+                expression { params.RELEASE != "None" && env.BRANCH_NAME == "master" }
+            }
+            steps {
+                script {
+                    def name = bat(returnStdout: true, script: "@${tool 'Python3.6.3_Win64'} setup.py --name").trim()
+                    def version = bat(returnStdout: true, script: "@${tool 'Python3.6.3_Win64'} setup.py --version").trim()
+                    input("Are you sure you want to push ${name} version ${version} to production? This version cannot be overwritten.")
+                    withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+                        bat "${tool 'Python3.6.3_Win64'} -m devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                        bat "${tool 'Python3.6.3_Win64'} -m devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
+                        bat "${tool 'Python3.6.3_Win64'} -m devpi push ${name}==${version} production/release"
+                    }
+
+                }
+                node("Linux"){
+                    updateOnlineDocs url_subdomain: params.URL_SUBFOLDER, stash_name: "HTML Documentation"
+                }
+            }
+            post {
+                success {
+                    script {
+                        if(params.JIRA_ISSUE != ""){
+                                jiraComment body: "Jenkins automated message: A new python package for DevPi was sent to http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}", issueKey: "${params.JIRA_ISSUE}"
+
+                            }
+                    }
+                }
+            }
+        }
         
         stage("Update online documentation") {
             agent any
@@ -392,6 +429,21 @@ pipeline {
                     }
                 }
             }
+        }
+    }
+    post {
+        always {
+            script {
+                def name = bat(returnStdout: true, script: "@${tool 'Python3.6.3_Win64'} setup.py --name").trim()
+                def version = bat(returnStdout: true, script: "@${tool 'Python3.6.3_Win64'} setup.py --version").trim()
+                withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+                    bat "${tool 'Python3.6.3_Win64'} -m devpi remove -y ${name}==${version}"
+                }
+            }
+        }
+        success {
+            echo "Cleaning up workspace"
+            deleteDir()
         }
     }
 }
