@@ -15,7 +15,8 @@ pipeline {
         booleanParam(name: "UNIT_TESTS", defaultValue: true, description: "Run automated unit tests")
         booleanParam(name: "ADDITIONAL_TESTS", defaultValue: true, description: "Run additional tests")
         booleanParam(name: "PACKAGE", defaultValue: true, description: "Create a package")
-        booleanParam(name: "DEPLOY_SCCM", defaultValue: false, description: "Create SCCM deployment package")
+        // booleanParam(name: "DEPLOY_SCCM", defaultValue: false, description: "Create SCCM deployment package")
+        choice(choices: 'None\nRelease_to_devpi_only\nRelease_to_devpi_and_sccm\n', description: "Release the build to production. Only available in the Master branch", name: 'RELEASE')
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: true, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
         booleanParam(name: "UPDATE_DOCS", defaultValue: false, description: "Update online documentation")
         string(name: 'URL_SUBFOLDER', defaultValue: "hathi_submission_workflow", description: 'The directory that the docs should be saved under')
@@ -213,17 +214,21 @@ pipeline {
             }
         }
 
-        stage("Deploy - Staging") {
-            agent any
-            when {
-                expression { params.DEPLOY_SCCM == true && params.PACKAGE == true }
-            }
+        // stage("Deploy to SCCM") {
+        //     when {
+        //         expression { params.RELEASE == "Release_to_devpi_and_sccm"}
+        //     }
 
-            steps {
-                deployStash("msi", "${env.SCCM_STAGING_FOLDER}/${params.PROJECT_NAME}/")
-                input("Deploy to production?")
-            }
-        }
+        //     // agent any
+        //     // when {
+        //     //     expression { params.DEPLOY_SCCM == true && params.PACKAGE == true }
+        //     // }
+
+        //     steps {
+        //         deployStash("msi", "${env.SCCM_STAGING_FOLDER}/${params.PROJECT_NAME}/")
+        //         input("Deploy to production?")
+        //     }
+        // }
         stage("Deploying to Devpi staging") {
             when {
                 expression { params.DEPLOY_DEVPI == true }
@@ -346,20 +351,27 @@ pipeline {
                 }
             }
         }
-        stage("Deploy - SCCM upload") {
-            agent any
+        stage("Deploy to SCCM") {
             when {
-                expression { params.DEPLOY_SCCM == true && params.PACKAGE == true }
+                expression { params.RELEASE == "Release_to_devpi_and_sccm"}
             }
-
             steps {
-                deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
+                node("Linux"){
+                    unstash "msi"
+                    deployStash("msi", "${env.SCCM_STAGING_FOLDER}/${params.PROJECT_NAME}/")
+                    input("Push a SCCM release?")
+                    deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
+                }
+
             }
+            // steps {
+            //     deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
+            // }
 
             post {
                 success {
                     script {
-                        unstash "Source"
+                        // unstash "Source"
                         def deployment_request = requestDeploy this, "deployment.yml"
                         echo deployment_request
                         writeFile file: "deployment_request.txt", text: deployment_request
