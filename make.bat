@@ -8,6 +8,8 @@ if "%~1" == "docs"           call:docs %EXTRA_ARGS%     && goto:eof
 if "%~1" == "venv"           call:venv          && goto:eof
 if "%~1" == "venvclean"      call:venvclean     && goto:eof
 if "%~1" == "test"           call:test          && goto:eof
+if "%~1" == "wheel"          call:wheel         && goto:eof
+if "%~1" == "sdist"          call:sdist         && goto:eof
 if "%~1" == "release"        call:release       && goto:eof
 if "%~1" == "clean"          call:clean         && goto:eof
 if "%~1" == "help"           call:help          && goto:eof
