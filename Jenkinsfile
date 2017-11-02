@@ -15,7 +15,8 @@ pipeline {
         booleanParam(name: "UNIT_TESTS", defaultValue: true, description: "Run automated unit tests")
         booleanParam(name: "ADDITIONAL_TESTS", defaultValue: true, description: "Run additional tests")
         booleanParam(name: "PACKAGE", defaultValue: true, description: "Create a package")
-        booleanParam(name: "DEPLOY_SCCM", defaultValue: false, description: "Create SCCM deployment package")
+        // booleanParam(name: "DEPLOY_SCCM", defaultValue: false, description: "Create SCCM deployment package")
+        choice(choices: 'None\nRelease_to_devpi_only\nRelease_to_devpi_and_sccm\n', description: "Release the build to production. Only available in the Master branch", name: 'RELEASE')
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: true, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
         booleanParam(name: "UPDATE_DOCS", defaultValue: false, description: "Update online documentation")
         string(name: 'URL_SUBFOLDER', defaultValue: "hathi_submission_workflow", description: 'The directory that the docs should be saved under')
@@ -52,7 +53,13 @@ pipeline {
             steps {
                 deleteDir()
                 checkout scm
-                virtualenv python_path: "${tool 'Python3.6.3_Win64'}", requirements_file: "requirements.txt", windows: true, "python setup.py build"
+                // virtualenv python_path: "${tool 'Python3.6.3_Win64'}", requirements_file: "requirements.txt", windows: true, "python setup.py build"
+                bat """${tool 'Python3.6.3_Win64'} -m venv venv
+                    call venv\\Scripts\\activate.bat
+                    pip install -r requirements.txt
+                    pip install -r requirements-dev.txt
+                    python setup.py build
+"""
                 stash includes: '**', name: "Source", useDefaultExcludes: false
 
                 stash includes: 'deployment.yml', name: "Deployment"
@@ -174,57 +181,199 @@ pipeline {
                                     stash includes: "*.msi", name: "msi"
                                 }
                             }
-                        }, "Windows Wheel": {
-                            node(label: "Windows") {
-                                deleteDir()
-                                unstash "Source"
-                                bat "${tool 'Python3.6.3_Win64'} setup.py bdist_wheel"
-                                archiveArtifacts artifacts: "dist/**", fingerprint: true
-                            }
-                        },
-
-                        "Source Release": {
-                            node(label: "Windows") {
-                                deleteDir()
-                                unstash "Source"
-                                bat "${tool 'Python3.6.3_Win64'} setup.py sdist"
-                                archiveArtifacts artifacts: "dist/**", fingerprint: true
-                            }
-//                            node(label: Linux) {
-//                                createSourceRelease(env.PYTHON3, "Source")
-//                            }
-
+                        }, 
+                        "Source and Wheel formats": {
+                            bat """${tool 'Python3.6.3_Win64'} -m venv venv
+                                    call venv\\Scripts\\activate.bat
+                                    pip install -r PyQt5  PyQt5 pyhathiprep HathiValidate HathiZip 
+                                    pip install -r requirements-dev.txt
+                                    python setup.py sdist bdist_wheel
+                                    """
                         }
+//                         "Windows Wheel": {
+//                             node(label: "Windows") {
+//                                 deleteDir()
+//                                 unstash "Source"
+//                                 bat "${tool 'Python3.6.3_Win64'} setup.py bdist_wheel"
+//                                 archiveArtifacts artifacts: "dist/**", fingerprint: true
+//                             }
+//                         },
+
+//                         "Source Release": {
+//                             node(label: "Windows") {
+//                                 deleteDir()
+//                                 unstash "Source"
+//                                 bat "${tool 'Python3.6.3_Win64'} setup.py sdist"
+//                                 archiveArtifacts artifacts: "dist/**", fingerprint: true
+//                             }
+// //                            node(label: Linux) {
+// //                                createSourceRelease(env.PYTHON3, "Source")
+// //                            }
+
+//                         }
                 )
             }
-        }
-
-        stage("Deploy - Staging") {
-            agent any
-            when {
-                expression { params.DEPLOY_SCCM == true && params.PACKAGE == true }
-            }
-
-            steps {
-                deployStash("msi", "${env.SCCM_STAGING_FOLDER}/${params.PROJECT_NAME}/")
-                input("Deploy to production?")
+            post {
+              success {
+                  dir("dist"){
+                      unstash "msi"
+                      archiveArtifacts artifacts: "*.whl", fingerprint: true
+                      archiveArtifacts artifacts: "*.tar.gz", fingerprint: true
+                      archiveArtifacts artifacts: "*.msi", fingerprint: true
+                }
+              }
             }
         }
 
-        stage("Deploy - SCCM upload") {
-            agent any
-            when {
-                expression { params.DEPLOY_SCCM == true && params.PACKAGE == true }
-            }
+        // stage("Deploy to SCCM") {
+        //     when {
+        //         expression { params.RELEASE == "Release_to_devpi_and_sccm"}
+        //     }
 
-            steps {
-                deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
+        //     // agent any
+        //     // when {
+        //     //     expression { params.DEPLOY_SCCM == true && params.PACKAGE == true }
+        //     // }
+
+        //     steps {
+        //         deployStash("msi", "${env.SCCM_STAGING_FOLDER}/${params.PROJECT_NAME}/")
+        //         input("Deploy to production?")
+        //     }
+        // }
+        stage("Deploying to Devpi staging") {
+            when {
+                expression { params.DEPLOY_DEVPI == true }
             }
+            steps {
+                bat "devpi use http://devpy.library.illinois.edu"
+                withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+                    bat "${tool 'Python3.6.3_Win64'} -m devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                    bat "${tool 'Python3.6.3_Win64'} -m devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
+                    script {
+                        bat "${tool 'Python3.6.3_Win64'} -m devpi upload --from-dir dist"
+                        try {
+                            bat "${tool 'Python3.6.3_Win64'} -m devpi upload --only-docs"
+                        } catch (exc) {
+                            echo "Unable to upload to devpi with docs."
+                        }
+                    }
+                }
+                // withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+                //     bat "${tool 'Python3.6.3_Win64'} -m devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                //     bat "${tool 'Python3.6.3_Win64'} -m devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}"
+                //     script {
+                //         try{
+                //             bat "${tool 'Python3.6.3_Win64'} -m devpi upload --with-docs"
+
+                //         } catch (exc) {
+                //             echo "Unable to upload to devpi with docs. Trying without"
+                //             bat "${tool 'Python3.6.3_Win64'} -m devpi upload"
+                //         }
+                //     }
+                //     bat "devpi test hsw"
+                // }
+
+            }
+            
+            // post {
+            //     success {
+            //         script {
+            //             if(params.JIRA_ISSUE != ""){
+            //                     jiraComment body: "Jenkins automated message: A new python package for DevPi was sent to http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}", issueKey: "${params.JIRA_ISSUE}"
+
+            //                 }
+            //         }
+            //     }
+            // }
+        }
+        stage("Test Devpi packages") {
+            when {
+                expression { params.DEPLOY_DEVPI == true }
+            }
+            steps {
+                parallel(
+                        "Source": {
+                            script {
+                                def name = bat(returnStdout: true, script: "@${tool 'Python3.6.3_Win64'} setup.py --name").trim()
+                                def version = bat(returnStdout: true, script: "@${tool 'Python3.6.3_Win64'} setup.py --version").trim()
+                                node("Windows") {
+                                    withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+                                        bat "${tool 'Python3.6.3_Win64'} -m devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                                        bat "${tool 'Python3.6.3_Win64'} -m devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
+                                        echo "Testing Source package in devpi"
+                                        script {
+                                             def devpi_test = bat(returnStdout: true, script: "${tool 'Python3.6.3_Win64'} -m devpi test --index http://devpy.library.illinois.edu/${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging ${name} -s tar.gz").trim()
+                                             if(devpi_test =~ 'tox command failed') {
+                                                error("Tox command failed")
+                                            }
+                                        }
+                                    }
+                                }
+
+                            }
+                        },
+                        "Wheel": {
+                            script {
+                                def name = bat(returnStdout: true, script: "@${tool 'Python3.6.3_Win64'} setup.py --name").trim()
+                                def version = bat(returnStdout: true, script: "@${tool 'Python3.6.3_Win64'} setup.py --version").trim()
+                                node("Windows") {
+                                    withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+                                        bat "${tool 'Python3.6.3_Win64'} -m devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                                        bat "${tool 'Python3.6.3_Win64'} -m devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
+                                        echo "Testing Whl package in devpi"
+                                        script {
+                                            def devpi_test =  bat(returnStdout: true, script: "${tool 'Python3.6.3_Win64'} -m devpi test --index http://devpy.library.illinois.edu/${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging ${name} -s whl").trim()
+                                            if(devpi_test =~ 'tox command failed') {
+                                                error("Tox command failed")
+                                            }
+                                            
+                                        }
+
+                                    }
+                                }
+
+                            }
+                        }
+                )
+
+            }
+            post {
+                success {
+                    echo "it Worked. Pushing file to ${env.BRANCH_NAME} index"
+                    script {
+                        def name = bat(returnStdout: true, script: "@${tool 'Python3.6.3_Win64'} setup.py --name").trim()
+                        def version = bat(returnStdout: true, script: "@${tool 'Python3.6.3_Win64'} setup.py --version").trim()
+                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+                            bat "${tool 'Python3.6.3_Win64'} -m devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                            bat "${tool 'Python3.6.3_Win64'} -m devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
+                            bat "${tool 'Python3.6.3_Win64'} -m devpi push ${name}==${version} ${DEVPI_USERNAME}/${env.BRANCH_NAME}"
+                        }
+
+                    }
+                }
+            }
+        }
+        stage("Deploy to SCCM") {
+            when {
+                expression { params.RELEASE == "Release_to_devpi_and_sccm"}
+            }
+            steps {
+                node("Linux"){
+                    unstash "msi"
+                    deployStash("msi", "${env.SCCM_STAGING_FOLDER}/${params.PROJECT_NAME}/")
+                    input("Push a SCCM release?")
+                    deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
+                }
+
+            }
+            // steps {
+            //     deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
+            // }
 
             post {
                 success {
                     script {
-                        unstash "Source"
+                        // unstash "Source"
                         def deployment_request = requestDeploy this, "deployment.yml"
                         echo deployment_request
                         writeFile file: "deployment_request.txt", text: deployment_request
@@ -238,34 +387,25 @@ pipeline {
                 }
             }
         }
-        stage("Deploying to Devpi") {
-            agent {
-                node {
-                    label 'Windows&&DevPi'
-                }
-            }
+        stage("Release to DevPi production") {
             when {
-                expression { params.DEPLOY_DEVPI == true }
+                expression { params.RELEASE != "None" && env.BRANCH_NAME == "master" }
             }
             steps {
-                deleteDir()
-                unstash "Source"
-                bat "devpi use http://devpy.library.illinois.edu"
-                withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-                    bat "${tool 'Python3.6.3_Win64'} -m devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-                    bat "${tool 'Python3.6.3_Win64'} -m devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}"
-                    script {
-                        try{
-                            bat "${tool 'Python3.6.3_Win64'} -m devpi upload --with-docs"
-
-                        } catch (exc) {
-                            echo "Unable to upload to devpi with docs. Trying without"
-                            bat "${tool 'Python3.6.3_Win64'} -m devpi upload"
-                        }
+                script {
+                    def name = bat(returnStdout: true, script: "@${tool 'Python3.6.3_Win64'} setup.py --name").trim()
+                    def version = bat(returnStdout: true, script: "@${tool 'Python3.6.3_Win64'} setup.py --version").trim()
+                    input("Are you sure you want to push ${name} version ${version} to production? This version cannot be overwritten.")
+                    withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+                        bat "${tool 'Python3.6.3_Win64'} -m devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                        bat "${tool 'Python3.6.3_Win64'} -m devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
+                        bat "${tool 'Python3.6.3_Win64'} -m devpi push ${name}==${version} production/release"
                     }
-                    bat "devpi test hsw"
-                }
 
+                }
+                node("Linux"){
+                    updateOnlineDocs url_subdomain: params.URL_SUBFOLDER, stash_name: "HTML Documentation"
+                }
             }
             post {
                 success {
@@ -278,6 +418,7 @@ pipeline {
                 }
             }
         }
+        
         stage("Update online documentation") {
             agent any
             when {
@@ -302,6 +443,21 @@ pipeline {
                     }
                 }
             }
+        }
+    }
+    post {
+        always {
+            script {
+                def name = bat(returnStdout: true, script: "@${tool 'Python3.6.3_Win64'} setup.py --name").trim()
+                def version = bat(returnStdout: true, script: "@${tool 'Python3.6.3_Win64'} setup.py --version").trim()
+                withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+                    bat "${tool 'Python3.6.3_Win64'} -m devpi remove -y ${name}==${version}"
+                }
+            }
+        }
+        success {
+            echo "Cleaning up workspace"
+            deleteDir()
         }
     }
 }

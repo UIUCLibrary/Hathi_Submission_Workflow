@@ -1,5 +1,5 @@
 import abc
-import datetime
+# import datetime
 import logging
 import os
 import typing
@@ -314,7 +314,7 @@ class UpdateChecksums(HathiWizardProcess):
 
     def process(self):
 
-        self.logger.log("{} Processing".format(datetime.datetime.now()))
+        self.logger.log("Processing")
         if self.data['workflow'] == "BrittleBooks":
             processing_workflow = workflow.Workflow(workflow.BrittleBooksWorkflow())
         else:
@@ -324,9 +324,9 @@ class UpdateChecksums(HathiWizardProcess):
         processing_window = processing.ListCallableProgress(self, tasks=tasks, task_name="Updating checksums")
         processing_window.logger = self.logger.log
         try:
-            self.logger.log("Updating checksum started {}".format(datetime.datetime.now()))
+            self.logger.log("Updating checksum started {}")
             processing_window.process()
-            self.logger.log("Updating checksum ended {}".format(datetime.datetime.now()))
+            self.logger.log("Updating checksum ended {}")
         except processing.ProcessCanceled:
             return False
         return True
@@ -336,7 +336,7 @@ class Prep(HathiWizardProcess):
     page_title = "Prep"
 
     def process(self):
-        self.logger.log("{} Processing".format(datetime.datetime.now()))
+        self.logger.log("Processing")
         if self.data['workflow'] == "DS":
             processing_workflow = workflow.Workflow(workflow.DSWorkflow())
         else:
@@ -347,9 +347,9 @@ class Prep(HathiWizardProcess):
         processing_window.logger = self.logger.log
         try:
 
-            self.logger.log("Prep started".format(datetime.datetime.now()))
+            self.logger.log("Prep started")
             processing_window.process()
-            self.logger.log("Prep ended".format(datetime.datetime.now()))
+            self.logger.log("Prep ended")
         except processing.ProcessCanceled:
             return False
         return True
