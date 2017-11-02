@@ -5,4 +5,5 @@ recursive-include tests *.py
 recursive-include docs *
 recursive-include ui *
 recursive-include hsw *.py
-recursive-exclude __pycache__
+recursive-exclude tests __pycache__
+recursive-exclude hsw __pycache__
