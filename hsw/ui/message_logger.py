@@ -1,4 +1,6 @@
 import abc
+
+import datetime
 from PyQt5.QtGui import QTextDocument
 
 
@@ -31,7 +33,7 @@ class Logger(AbsSubject):
         self.messages = []  # type: ignore
 
     def log(self, message):
-        self.messages.append(str(message))
+        self.messages.append("{}: {}".format(datetime.datetime.now(), message))
         self.notify(self.messages)
 
     def clean(self):
