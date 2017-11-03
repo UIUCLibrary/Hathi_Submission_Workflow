@@ -5,12 +5,8 @@ cache: pip
 install:
 - wget https://github.com/UIUCLibrary/pyhathiprep/archive/0.1.3.tar.gz && tar -xvzf 0.1.3.tar.gz
 - cd pyhathiprep-0.1.3 && python setup.py install
-#- pip install git+git://github.com/UIUCLibrary/pyhathiprep.git
 - pip install git+git://github.com/UIUCLibrary/HathiValidate.git
 - pip install git+git://github.com/UIUCLibrary/HathiZip.git
-#- pip install -e git://github.com/UIUCLibrary/pyhathiprep.git#egg=pyhathiprep
-#- pip install -e git://github.com/UIUCLibrary/HathiValidate.git#egg=HathiValidate
-#- pip install -e git://github.com/UIUCLibrary/HathiZip.git#egg=HathiZip
 - pip install tox pyqt5
 #- make gui
 - python setup.py install
