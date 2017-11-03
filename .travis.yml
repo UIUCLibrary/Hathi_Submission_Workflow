@@ -3,7 +3,9 @@ python:
 - "3.6"
 cache: pip
 install:
-- pip install -r requirements.txt
+- pip install -e git://github.com/UIUCLibrary/pyhathiprep.git#egg=pyhathiprep
+- pip install -e git://github.com/UIUCLibrary/HathiValidate.git#egg=HathiValidate
+- pip install -e git://github.com/UIUCLibrary/HathiZip.git#egg=HathiZip
 - pip install tox pyqt5
 - make gui
 - python setup.py install
