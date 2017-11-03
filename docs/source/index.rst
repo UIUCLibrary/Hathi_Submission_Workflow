@@ -30,7 +30,7 @@ Extras
    :maxdepth: 1
 
    dependencies
-
+   history
 
 
 
