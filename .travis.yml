@@ -4,7 +4,9 @@ python:
 - "3.6"
 cache: pip
 install:
-- pip install git+git://github.com/UIUCLibrary/pyhathiprep.git
+- wget https://github.com/UIUCLibrary/pyhathiprep/archive/0.1.3.tar.gz && tar -xvzf 0.1.3.tar.gz
+
+#- pip install git+git://github.com/UIUCLibrary/pyhathiprep.git
 - pip install git+git://github.com/UIUCLibrary/HathiValidate.git
 - pip install git+git://github.com/UIUCLibrary/HathiZip.git
 #- pip install -e git://github.com/UIUCLibrary/pyhathiprep.git#egg=pyhathiprep
