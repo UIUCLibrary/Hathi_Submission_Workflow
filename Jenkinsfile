@@ -46,10 +46,6 @@ pipeline {
             }
         }
         stage("Cloning and Generating Source") {
-            agent {
-                label "Windows"
-            }
-
             steps {
                 deleteDir()
                 checkout scm
@@ -185,7 +181,7 @@ pipeline {
                         "Source and Wheel formats": {
                             bat """${tool 'Python3.6.3_Win64'} -m venv venv
                                     call venv\\Scripts\\activate.bat
-                                    pip install -r PyQt5  PyQt5 pyhathiprep HathiValidate HathiZip 
+                                    pip install -r requirements.txt
                                     pip install -r requirements-dev.txt
                                     python setup.py sdist bdist_wheel
                                     """
