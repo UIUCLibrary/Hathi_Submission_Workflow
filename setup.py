@@ -37,6 +37,7 @@ setup(
         "pyqt5",
         "pyhathiprep >= 0.1.3",
         "HathiValidate",
+        "imgvalidator",
         "HathiZip"
     ],
     long_description=readme,
