@@ -118,22 +118,16 @@ goto :eof
     echo Creating standalone release
 
     setlocal
-    set "VSCMD_START_DIR=%CD%"
-
     REM if the virtualenv doesn't already exists, create it first
     if not exist "venv" call :venv
 
     REM Load the virtualenv
     if exist "venv" call venv\Scripts\activate.bat
 
-    REM Run with the x64 environment
-    call "%vs140comntools%..\..\VC\vcvarsall.bat" x86_amd64
-
     REM install required Nuget packages
-    nuget install windows_build\packages.config -OutputDirectory build\nugetpackages
+    call windows_build/build_release.bat
 
-    REM Run the MSBuild script for creating the msi
-    MSBuild release.pyproj /nologo /t:msi /p:ProjectRoot="%CD%
+
     endlocal
 
 goto :eof
@@ -166,23 +160,15 @@ goto :eof
     setlocal
 	if exist "venv" call venv\Scripts\activate.bat
     python setup.py clean --all
-    
-    REM Run with the x64 environment
-    set "VSCMD_START_DIR=%CD%"
-    call "%vs140comntools%..\..\VC\vcvarsall.bat" x86_amd64
-    MSBuild /nologo release.pyproj /t:Clean /p:ProjectRoot=%CD%
 
-    REM Delete any nugetpackages used to build a standalone release
-    if exist "build\nugetpackages" (
-        echo Deleting local nuget packages
-        rmdir /s /q build\nugetpackages
-    )
-
+    call windows_build/clean_release.bat
     REM Remove any generated documentation
     if exist "docs\build\" (
         echo Deleting generated package documentation
         rmdir /s /q docs\build
     )
+
+    if exists hsw.egg-info rd /q /s hsw.egg-info && echo Deleted hsw.egg-info
 
     endlocal
 goto :eof
