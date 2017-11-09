@@ -22,7 +22,7 @@
     <PropertyGroup>
         <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
     </PropertyGroup>
-    <Import Project="windows_build\python.targets"/>
+    <Import Project="python.targets"/>
     <ItemGroup>
         <Content Include="LICENSE.md"/>
         <Content Include="make.bat"/>
@@ -36,7 +36,7 @@
         <Folder Include="windows_build"/>
     </ItemGroup>
     <ItemGroup>
-        <MSIBuild Include="windows_build\build_msi.wixproj"/>
+        <MSIBuild Include="build_msi.wixproj"/>
     </ItemGroup>
     <Target Name="TestRelease" DependsOnTargets="Build">
         <Message Text="Running tests"/>
