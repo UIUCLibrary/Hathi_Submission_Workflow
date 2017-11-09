@@ -19,6 +19,7 @@
     <Target Name="PythonRequirements">
         <Message Text="Install Python development requirements"/>
         <Exec Command="@(Python) -m pip install -r requirements.txt" WorkingDirectory="$(ProjectRoot)"/>
+        <Exec Command="@(Python) -m pip install -r requirements-dev.txt" WorkingDirectory="$(ProjectRoot)"/>
     </Target>
     <Target Name="Build" DependsOnTargets="PythonRuntime;Wheel">
         <Message Text="Creating a python build"/>
