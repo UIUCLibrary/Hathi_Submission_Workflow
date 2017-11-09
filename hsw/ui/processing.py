@@ -100,7 +100,7 @@ class ListCallableProgress(ProcessProgress):
             print(e)
             raise
         if result:
-            self.results.append(result)
+            self.results += result
         self._counter += 1
 
 
