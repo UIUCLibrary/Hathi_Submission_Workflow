@@ -3,3 +3,4 @@ pyhathiprep
 HathiValidate
 HathiZip
 imgvalidator
+setuptools>=30.3.0
