@@ -446,25 +446,32 @@ class Validate(HathiWizardProcess):
     def build_report(self, results) -> str:
         splitter = "*" * 20
         title = "Validation report"
-        try:
-            sorted_results = sorted(results, key=lambda r: r.source)
+        summary = "{} issues detected.".format(len(results))
+        if results:
+            try:
+                sorted_results = sorted(results, key=lambda r: r.source)
 
-        except Exception as e:
-            print(e)
-            raise
+            except Exception as e:
+                print(e)
+                raise
 
-        message_lines = []
-        for result in sorted_results:
-            message_lines.append(str(result))
-        report_data = "\n".join(message_lines)
+            message_lines = []
+            for result in sorted_results:
+                message_lines.append(str(result))
+            report_details = "\n".join(message_lines)
+        else:
+            report_details = ""
 
         return "\n" \
                "{}\n" \
                "{}\n" \
                "{}\n" \
+               "\n" \
+               "{}\n" \
+               "\n" \
                "{}\n" \
                "{}\n" \
-            .format(splitter, title, splitter, report_data, splitter)
+            .format(splitter, title, splitter, summary, report_details, splitter)
 
 
 class Zip(HathiWizardProcess):
