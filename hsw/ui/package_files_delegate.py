@@ -7,6 +7,7 @@ class FileSelectionDelegate2(QItemDelegate):
     def __init__(self, parent):
         self.model = parent.model
         self.choices = []
+        self.acceptable_extensions = [".jp2", ".tif"]
         super().__init__(parent)
 
     def createEditor(self, parent, QStyleOptionViewItem, QModelIndex):
@@ -22,7 +23,7 @@ class FileSelectionDelegate2(QItemDelegate):
             for file_name in item.instantiations["access"].files:
                 basename = os.path.basename(file_name)
                 base, ext = os.path.splitext(basename)
-                if ext.lower() == ".jp2":
+                if ext.lower() in self.acceptable_extensions:
                     item_names.append(basename)
             # item_names.append(item.metadata["item_name"])
         self.choices = item_names
