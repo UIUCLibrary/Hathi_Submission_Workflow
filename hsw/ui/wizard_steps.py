@@ -315,6 +315,7 @@ class QualityControl(HathiWizardProcess):
                             "\n\n".join(report_sections),
                             report_footer)
 
+
 class PackageBrowser2(QtHathiWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -325,7 +326,7 @@ class PackageBrowser2(QtHathiWizardPage):
         self.my_layout.setContentsMargins(0, 0, 0, 0)
 
     def initializePage(self):
-        print("running alterntiave")
+        print("running alternative")
         # super().initializePage()
         # root = self.field("RootLocation")
 
