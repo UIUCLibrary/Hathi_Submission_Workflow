@@ -1,5 +1,4 @@
-======
-README
-======
+About
+=====
 
-This it the readme for Hathi Submission Workflow.
+The Hathi Submission Workflow is an application designed to streamline the submission of content to Hathi Trust.

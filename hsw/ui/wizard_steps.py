@@ -265,6 +265,57 @@ class SelectDestination(QtHathiWizardPage):
         return False
 
 
+class QualityControl(HathiWizardProcess):
+    page_title = "Quality Control"
+
+    def process(self):
+        self.logger.log("Processing")
+        if self.data['workflow'] == "DS":
+            processing_workflow = workflow.Workflow(workflow.DSWorkflow())
+        else:
+            raise Exception("invalid workflow, {}".format(self.data['workflow']))
+        tasks = processing_workflow.qc(self.data['package'])
+        processing_window = processing.ListCallableProgress(self, tasks=tasks, task_name="Performing QC")
+        try:
+            self.logger.log("QC started")
+            processing_window.process()
+            report = self._create_report(processing_window.results)
+            self.logger.log("QC ended")
+
+            self.logger.log("{}\n".format(report))
+
+        except processing.ProcessCanceled:
+            return False
+        return True
+
+    @staticmethod
+    def _create_report(results):
+        error_count = 0
+        report_sections = []
+        report_header = "Quality Control Report\n" \
+                        "================================"
+        report_footer = "================================"
+        for result in results:
+            print(result.filename)
+            if not result.errors:
+                continue
+            errors = "\n".join(result.errors)# for error in results.errors
+            error_count += 1
+            print(errors)
+            report_sections.append("{}:\n{}".format(result.filename, errors))
+        report_summary = "Summary:\n\n" \
+                         "Checked {} files.\n" \
+                         "Found {} issues.\n".format(len(results), error_count)
+
+        return  "{}\n" \
+                "{}\n" \
+                "{}\n" \
+                "{}".format(report_header,
+                            report_summary,
+                            "\n\n".join(report_sections),
+                            report_footer)
+
+
 class PackageBrowser2(QtHathiWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -275,7 +326,7 @@ class PackageBrowser2(QtHathiWizardPage):
         self.my_layout.setContentsMargins(0, 0, 0, 0)
 
     def initializePage(self):
-        print("running alterntiave")
+        print("running alternative")
         # super().initializePage()
         # root = self.field("RootLocation")
 
@@ -324,9 +375,9 @@ class UpdateChecksums(HathiWizardProcess):
         processing_window = processing.ListCallableProgress(self, tasks=tasks, task_name="Updating checksums")
         processing_window.logger = self.logger.log
         try:
-            self.logger.log("Updating checksum started {}")
+            self.logger.log("Updating checksum started")
             processing_window.process()
-            self.logger.log("Updating checksum ended {}")
+            self.logger.log("Updating checksum completed")
         except processing.ProcessCanceled:
             return False
         return True
@@ -349,7 +400,7 @@ class Prep(HathiWizardProcess):
 
             self.logger.log("Prep started")
             processing_window.process()
-            self.logger.log("Prep ended")
+            self.logger.log("Prep completed")
         except processing.ProcessCanceled:
             return False
         return True
@@ -381,7 +432,9 @@ class Validate(HathiWizardProcess):
 
         processing_window.logger = self.logger.log
         try:
+            self.logger.log("Validation started")
             processing_window.process()
+            self.logger.log("Validation completed")
 
         except processing.ProcessCanceled:
             return False
@@ -393,19 +446,32 @@ class Validate(HathiWizardProcess):
     def build_report(self, results) -> str:
         splitter = "*" * 20
         title = "Validation report"
-        sorted_results = sorted(results, key=lambda r: r.source)
-        message_lines = []
-        for result in sorted_results:
-            message_lines.append(str(result))
-        report_data = "\n".join(message_lines)
+        summary = "{} issues detected.".format(len(results))
+        if results:
+            try:
+                sorted_results = sorted(results, key=lambda r: r.source)
+
+            except Exception as e:
+                print(e)
+                raise
+
+            message_lines = []
+            for result in sorted_results:
+                message_lines.append(str(result))
+            report_details = "\n".join(message_lines)
+        else:
+            report_details = ""
 
         return "\n" \
                "{}\n" \
                "{}\n" \
                "{}\n" \
+               "\n" \
+               "{}\n" \
+               "\n" \
                "{}\n" \
                "{}\n" \
-            .format(splitter, title, splitter, report_data, splitter)
+            .format(splitter, title, splitter, summary, report_details, splitter)
 
 
 class Zip(HathiWizardProcess):
@@ -426,7 +492,7 @@ class Zip(HathiWizardProcess):
         processing_window = processing.ListCallableProgress(self, tasks=tasks, task_name="Zipping")
         processing_window.logger = self.logger.log
         try:
-            self.logger.log("Zipping")
+            self.logger.log("Zipping process started")
             processing_window.process()
             self.logger.log("Zipping completed.")
             self.logger.log("Files can be found at {}".format(self.data['export_destination']))

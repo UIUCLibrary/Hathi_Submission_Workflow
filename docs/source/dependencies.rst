@@ -12,15 +12,31 @@ User Requirements
  Python 3+           https://www.python.org/downloads/
 ===============    ==================================================
 
+
+1st Party Libraries
+-------------------
+
+=================    ==================================================
+ Library               Download Link
+=================    ==================================================
+ pyhathiprep          https://github.com/UIUCLibrary/pyhathiprep
+ HathiValidate        https://github.com/UIUCLibrary/HathiValidate
+ HathiZip             https://github.com/UIUCLibrary/HathiZip
+=================    ==================================================
+
 3rd Party Libraries
 -------------------
+
+- PyQt5
+
+3rd Party Libraries for Development
+-----------------------------------
 
 - mypy
 - pytest
 - sphinx
 - tox
 - wheel
-- PyQt5
 
 Typically, you shouldn't have to worry about installing 3rd Party Libraries if you install with the setup.py.
 

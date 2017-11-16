@@ -94,7 +94,11 @@ class ListCallableProgress(ProcessProgress):
         self._update_message(message)
         self.logger(message)
         task = self._tasks[self._counter]
-        result = task()
+        try:
+            result = task()
+        except Exception as e:
+            print(e)
+            raise
         if result:
             self.results += result
         self._counter += 1
