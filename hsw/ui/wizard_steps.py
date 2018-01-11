@@ -320,6 +320,7 @@ class PackageBrowser2(QtHathiWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.package_view = QtWidgets.QTreeView(self)
+        self.package_view.setEditTriggers(QtWidgets.QTreeView.AllEditTriggers)
         self.package_view.setContentsMargins(0, 0, 0, 0)
         self.my_layout.addWidget(self.package_view)
 
