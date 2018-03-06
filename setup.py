@@ -21,7 +21,8 @@ setup(
         "pyhathiprep >= 0.1.3",
         "HathiValidate",
         "imgvalidator",
-        "HathiZip"
+        "HathiZip",
+        "setuptools>=30.3.0"
     ],
     test_suite="tests",
     setup_requires=[
