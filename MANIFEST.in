@@ -1,9 +1,12 @@
 # Include the license file
-include LICENSE tox.ini README.rst requirements.txt requirements-dev.txt
-
+include LICENSE
+include tox.ini
+include README.rst
+include requirements.txt
+include requirements-dev.txt
 recursive-include tests *.py
-recursive-include docs *
+recursive-include docs\source *
+include docs\make.bat
+include docs\Makefile
 recursive-include ui *
 recursive-include hsw *.py
-recursive-exclude tests __pycache__
-recursive-exclude hsw __pycache__
