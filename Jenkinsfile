@@ -30,31 +30,50 @@ pipeline {
 
     parameters {
         booleanParam(name: "FRESH_WORKSPACE", defaultValue: false, description: "Purge workspace before staring and checking out source")
-        booleanParam(name: "UNIT_TESTS", defaultValue: true, description: "Run Automated Unit Tests")
-        booleanParam(name: "ADDITIONAL_TESTS", defaultValue: true, description: "Run additional tests")
+        string(name: 'JIRA_ISSUE', defaultValue: "", description: 'Jira task to generate about updates.')
+        booleanParam(name: "BUILD_DOCS", defaultValue: true, description: "Build documentation")
+        booleanParam(name: "TEST_RUN_DOCTEST", defaultValue: true, description: "Test documentation")
+        booleanParam(name: "TEST_RUN_PYTEST", defaultValue: true, description: "Run unit tests with PyTest")
+        booleanParam(name: "TEST_RUN_MYPY", defaultValue: true, description: "Run MyPy static analysis")
+        booleanParam(name: "TEST_RUN_TOX", defaultValue: true, description: "Run Tox Tests")
+//        booleanParam(name: "UNIT_TESTS", defaultValue: true, description: "Run Automated Unit Tests")
+//        booleanParam(name: "ADDITIONAL_TESTS", defaultValue: true, description: "Run additional tests")
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: true, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
-        choice(choices: 'None\nRelease_to_devpi_only\nRelease_to_devpi_and_sccm\n', description: "Release the build to production. Only available in the Master branch", name: 'RELEASE')
+//        choice(choices: 'None\nRelease_to_devpi_only\nRelease_to_devpi_and_sccm\n', description: "Release the build to production. Only available in the Master branch", name: 'RELEASE')
         booleanParam(name: "UPDATE_DOCS", defaultValue: false, description: "Update the documentation")
         string(name: 'URL_SUBFOLDER', defaultValue: "DCCMedusaPackager", description: 'The directory that the docs should be saved under')
+        booleanParam(name: "DEPLOY_DEVPI", defaultValue: true, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
+        booleanParam(name: "DEPLOY_DEVPI_PRODUCTION", defaultValue: false, description: "Deploy to https://devpi.library.illinois.edu/production/release")
         // booleanParam(name: "PACKAGE", defaultValue: true, description: "Create a Packages")
         // booleanParam(name: "DEPLOY", defaultValue: false, description: "Deploy SCCM")
 //    //////////////////
 
-        string(name: "PROJECT_NAME", defaultValue: "Hathi Submission Workflow", description: "Name given to the project")
-        booleanParam(name: "UNIT_TESTS", defaultValue: true, description: "Run automated unit tests")
-        booleanParam(name: "ADDITIONAL_TESTS", defaultValue: true, description: "Run additional tests")
-        booleanParam(name: "PACKAGE", defaultValue: true, description: "Create a package")
+//        booleanParam(name: "UNIT_TESTS", defaultValue: true, description: "Run automated unit tests")
+//        booleanParam(name: "ADDITIONAL_TESTS", defaultValue: true, description: "Run additional tests")
+//        booleanParam(name: "PACKAGE", defaultValue: true, description: "Create a package")
         // booleanParam(name: "DEPLOY_SCCM", defaultValue: false, description: "Create SCCM deployment package")
-        choice(choices: 'None\nRelease_to_devpi_only\nRelease_to_devpi_and_sccm\n', description: "Release the build to production. Only available in the Master branch", name: 'RELEASE')
-        booleanParam(name: "DEPLOY_DEVPI", defaultValue: true, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
-        booleanParam(name: "UPDATE_DOCS", defaultValue: false, description: "Update online documentation")
-        string(name: 'URL_SUBFOLDER', defaultValue: "hathi_submission_workflow", description: 'The directory that the docs should be saved under')
-        string(name: 'JIRA_ISSUE', defaultValue: "", description: 'Jira task to generate about updates.')
+        booleanParam(name: "DEPLOY_DOCS", defaultValue: false, description: "Update online documentation")
 
     }
     stages {
         stage("Configure"){
             stages{
+                stage("Purge all existing data in workspace"){
+                    when{
+                        equals expected: true, actual: params.FRESH_WORKSPACE
+                    }
+                    steps{
+                        deleteDir()
+                        dir("source"){
+                            checkout scm
+                        }
+                    }
+                    post{
+                        success{
+                            bat "dir /s /B"
+                        }
+                    }
+                }
 
                 stage("Testing Jira issue"){
                     agent any
@@ -326,6 +345,66 @@ pipeline {
                 }
             }
         }
+        stage("Tests") {
+            parallel {
+                stage("PyTest"){
+                    when {
+                        equals expected: true, actual: params.TEST_RUN_PYTEST
+                    }
+                    steps{
+                        dir("source"){
+                            bat "${WORKSPACE}\\venv\\Scripts\\pytest.exe --junitxml=${WORKSPACE}/reports/junit-${env.NODE_NAME}-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/coverage/ --cov=hsw" //  --basetemp={envtmpdir}"
+                        }
+
+                    }
+                    post {
+                        always{
+                            dir("reports"){
+                                script{
+                                    def report_files = findFiles glob: '**/*.pytest.xml'
+                                    report_files.each { report_file ->
+                                        echo "Found ${report_file}"
+                                        // archiveArtifacts artifacts: "${log_file}"
+                                        junit "${report_file}"
+                                        bat "del ${report_file}"
+                                    }
+                                }
+                            }
+                            // junit "reports/junit-${env.NODE_NAME}-pytest.xml"
+                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/coverage', reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
+                        }
+                    }
+                }
+                stage("Doc Test"){
+                    when{
+                        equals expected: true, actual: params.TEST_RUN_DOCTEST
+                    }
+                    steps{
+                        dir("source"){
+                            bat "${WORKSPACE}\\venv\\Scripts\\sphinx-build.exe -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -v"
+                        }
+                    }
+
+                }
+                stage("MyPy"){
+                    when{
+                        equals expected: true, actual: params.TEST_RUN_MYPY
+                    }
+                    steps{
+                        dir("source") {
+                            bat "${WORKSPACE}\\venv\\Scripts\\mypy.exe -p hsw --junit-xml=${WORKSPACE}/junit-${env.NODE_NAME}-mypy.xml --html-report ${WORKSPACE}/reports/mypy_html"
+                        }
+                    }
+                    post{
+                        always {
+                            junit "junit-${env.NODE_NAME}-mypy.xml"
+                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy_html', reportFiles: 'index.html', reportName: 'MyPy', reportTitles: ''])
+                        }
+                    }
+                }
+            }
+        }
+
 //        stage("Unit tests") {
 //            when {
 //                expression { params.UNIT_TESTS == true }
