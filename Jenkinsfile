@@ -447,7 +447,18 @@ pipeline {
                     }
                     post {
                         always {
-                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'PyLint', pattern: 'reports/flake8.log']], unHealthy: ''
+                            script {
+                                dir("reports"){
+
+                                    def linter_logs = findFiles glob: "**/flake8.log"
+                                    linter_logs.each { linter_log ->
+                                        echo "Found ${linter_log}"
+                                        archiveArtifacts artifacts: "${linter_log}"
+                                        warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'PyLint', pattern: "${linter_log}"]], unHealthy: ''
+                                        bat "del ${linter_log}"
+                                    }
+                                }
+                            }
                         }
                     }
                 }
