@@ -1,13 +1,22 @@
 import os
 import sys
+
+from setuptools.config import read_configuration
 import cx_Freeze
 import pytest
 import platform
 
-metadata_file = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'hsw', '__version__.py')
-metadata = dict()
-with open(metadata_file, 'r', encoding='utf-8') as f:
-    exec(f.read(), metadata)
+#
+# metadata_file = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'hsw', '__version__.py')
+# metadata = dict()
+# with open(metadata_file, 'r', encoding='utf-8') as f:
+#     exec(f.read(), metadata)
+
+def get_project_metadata():
+    path = os.path.abspath(os.path.join(os.path.dirname(__file__), "setup.cfg"))
+    return read_configuration(path)["metadata"]
+
+metadata = get_project_metadata()
 
 def create_msi_tablename(python_name, fullname):
     shortname = python_name[:6].replace("_", "").upper()
@@ -41,14 +50,14 @@ directory_table = [
     (
         "PMenu",  # Directory
         "ProgramMenuFolder",  # Directory_parent
-        create_msi_tablename(metadata["__title__"], metadata["FULL_TITLE"])
+        create_msi_tablename(metadata["name"], "Hathi Submission Workflow")
     ),
 ]
 shortcut_table = [
     (
         "startmenuShortcutDoc",  # Shortcut
         "PMenu",  # Directory_
-        "{} Documentation".format(create_msi_tablename(metadata["__title__"], metadata["FULL_TITLE"])),
+        "{} Documentation".format(create_msi_tablename(metadata["name"], "Hathi Submission Workflow")),
         "TARGETDIR",  # Component_
         "[TARGETDIR]documentation.url",  # Target
         None,  # Arguments
@@ -65,7 +74,7 @@ if os.path.exists(MSVC):
     INCLUDE_FILES.append(MSVC)
 
 build_exe_options = {
-    "includes":        pytest.freeze_includes(),
+    "includes":        ["appdirs"] + pytest.freeze_includes(),
     "include_msvcr": True,
     "packages": [
         "os",
@@ -73,7 +82,7 @@ build_exe_options = {
         # "lxml",
         "packaging",
         "six",
-        "appdirs",
+
         # # "tests",
         "hsw"
     ],
@@ -84,12 +93,12 @@ build_exe_options = {
 
 target_name = 'hsw.exe' if platform.system() == "Windows" else 'hsw'
 cx_Freeze.setup(
-    name=metadata["FULL_TITLE"],
-    description=metadata["__description__"],
-    license="University of Illinois/NCSA Open Source License",
-    version=metadata["__version__"],
-    author=metadata["__author__"],
-    author_email=metadata["__author_email__"],
+    name="Hathi Submission Workflow",
+    description=metadata["description"],
+    license=metadata['license'],
+    version=metadata["version"],
+    author=metadata["author"],
+    author_email=metadata["author_email"],
     options={
         "build_exe": build_exe_options,
         "bdist_msi": {
