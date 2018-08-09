@@ -419,9 +419,9 @@ pipeline {
                         dir("source"){
                             script{
                                 try{
-                                    bat "pipenv run tox --workdir ${WORKSPACE}\\.tox"
+                                    bat "${WORKSPACE}\\venv\\Scripts\\tox.exe --workdir ${WORKSPACE}\\.tox"
                                 } catch (exc) {
-                                    bat "pipenv run tox --workdir ${WORKSPACE}\\.tox --recreate"
+                                    bat "${WORKSPACE}\\venv\\Scripts\\tox.exe --workdir ${WORKSPACE}\\.tox --recreate"
                                 }
                             }
 
