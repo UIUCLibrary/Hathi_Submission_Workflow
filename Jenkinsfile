@@ -35,7 +35,8 @@ pipeline {
         booleanParam(name: "TEST_RUN_DOCTEST", defaultValue: true, description: "Test documentation")
         booleanParam(name: "TEST_RUN_PYTEST", defaultValue: true, description: "Run unit tests with PyTest")
         booleanParam(name: "TEST_RUN_MYPY", defaultValue: true, description: "Run MyPy static analysis")
-//        booleanParam(name: "TEST_RUN_TOX", defaultValue: true, description: "Run Tox Tests")
+        booleanParam(name: "TEST_RUN_TOX", defaultValue: true, description: "Run Tox Tests")
+        booleanParam(name: "TEST_RUN_FLAKE8", defaultValue: true, description: "Run Flake8 static analysis")
 //        booleanParam(name: "UNIT_TESTS", defaultValue: true, description: "Run Automated Unit Tests")
 //        booleanParam(name: "ADDITIONAL_TESTS", defaultValue: true, description: "Run additional tests")
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: true, description: "Deploy to DevPi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
@@ -390,14 +391,63 @@ pipeline {
                         equals expected: true, actual: params.TEST_RUN_MYPY
                     }
                     steps{
-                        dir("source") {
-                            bat "${WORKSPACE}\\venv\\Scripts\\mypy.exe -p hsw --junit-xml=${WORKSPACE}/junit-${env.NODE_NAME}-mypy.xml --html-report ${WORKSPACE}/reports/mypy_html"
+                        script{
+                            try{
+                                tee('logs/mypy.log') {
+                                    dir("source"){
+                                        bat "${WORKSPACE}\\venv\\Scripts\\mypy.exe -p hsw --junit-xml=${WORKSPACE}/junit-${env.NODE_NAME}-mypy.xml --html-report ${WORKSPACE}/reports/mypy_html"
+                                    }
+                                }
+                            } catch (exc) {
+                                echo "MyPy found some warnings"
+                            }
                         }
                     }
                     post{
                         always {
                             junit "junit-${env.NODE_NAME}-mypy.xml"
+                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'MyPy', pattern: 'logs/mypy.log']], unHealthy: ''
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy_html', reportFiles: 'index.html', reportName: 'MyPy', reportTitles: ''])
+                        }
+                    }
+                }
+                stage("Run Tox test") {
+                    when{
+                        equals expected: true, actual: params.TEST_RUN_TOX
+                    }
+                    steps {
+                        dir("source"){
+                            script{
+                                try{
+                                    bat "pipenv run tox --workdir ${WORKSPACE}\\.tox"
+                                } catch (exc) {
+                                    bat "pipenv run tox --workdir ${WORKSPACE}\\.tox --recreate"
+                                }
+                            }
+
+                        }
+                    }
+                }
+                stage("Run Flake8 Static Analysis") {
+                    when {
+                        equals expected: true, actual: params.TEST_RUN_FLAKE8
+                    }
+                    steps{
+                        script{
+                            try{
+                                tee('reports/flake8.log') {
+                                    dir("source"){
+                                        bat "pipenv run flake8 speedwagon --format=pylint"
+                                    }
+                                }
+                            } catch (exc) {
+                                echo "flake8 found some warnings"
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'PyLint', pattern: 'reports/flake8.log']], unHealthy: ''
                         }
                     }
                 }
