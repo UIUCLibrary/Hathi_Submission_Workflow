@@ -23,10 +23,10 @@ pipeline {
     triggers {
         cron('@daily')
     }
-    environment {
-        mypy_args = "--junit-xml=mypy.xml"
-        pytest_args = "--junitxml=reports/junit-{env:OS:UNKNOWN_OS}-{envname}.xml --junit-prefix={env:OS:UNKNOWN_OS}  --basetemp={envtmpdir}"
-    }
+//    environment {
+//        mypy_args = "--junit-xml=mypy.xml"
+//        pytest_args = "--junitxml=reports/junit-{env:OS:UNKNOWN_OS}-{envname}.xml --junit-prefix={env:OS:UNKNOWN_OS}  --basetemp={envtmpdir}"
+//    }
 
     parameters {
         booleanParam(name: "FRESH_WORKSPACE", defaultValue: false, description: "Purge workspace before staring and checking out source")
@@ -53,129 +53,363 @@ pipeline {
 
     }
     stages {
-        stage("Testing Jira issue"){
-            agent any
-            when {
-                expression {params.JIRA_ISSUE != ""}
-            }
-            steps {
-                echo "Finding Jira issue $params.JIRA_ISSUE"
-                script {
-                    // def result = jiraSearch "issue = $params.JIRA_ISSUE"
-                    def result = jiraIssueSelector(issueSelector: [$class: 'JqlIssueSelector', jql: "issue = $params.JIRA_ISSUE"])
-                    if(result.isEmpty()){
-                        echo "Jira issue $params.JIRA_ISSUE not found"
-                        error("Jira issue $params.JIRA_ISSUE not found")
+        stage("Configure"){
+            stages{
 
-                    } else {
-                        echo "Located ${result}"
+                stage("Testing Jira issue"){
+                    agent any
+                    when {
+                        expression {params.JIRA_ISSUE != ""}
+                    }
+                    steps {
+                        echo "Finding Jira issue $params.JIRA_ISSUE"
+                        script {
+                            // def result = jiraSearch "issue = $params.JIRA_ISSUE"
+                            def result = jiraIssueSelector(issueSelector: [$class: 'JqlIssueSelector', jql: "issue = $params.JIRA_ISSUE"])
+                            if(result.isEmpty()){
+                                echo "Jira issue $params.JIRA_ISSUE not found"
+                                error("Jira issue $params.JIRA_ISSUE not found")
+
+                            } else {
+                                echo "Located ${result}"
+                            }
+                        }
+
                     }
                 }
+                stage("Cleanup"){
+                    steps {
 
-            }
-        }
-        stage("Cloning and Generating Source") {
-            steps {
-                deleteDir()
-                checkout scm
-                // virtualenv python_path: "${tool 'Python3.6.3_Win64'}", requirements_file: "requirements.txt", windows: true, "python setup.py build"
-                bat """${tool 'Python3.6.3_Win64'} -m venv venv
-                    call venv\\Scripts\\activate.bat
-                    pip install -r requirements.txt
-                    pip install -r requirements-dev.txt
-                    python setup.py build
-"""
-                stash includes: '**', name: "Source", useDefaultExcludes: false
 
-                stash includes: 'deployment.yml', name: "Deployment"
-            }
-
-        }
-
-        stage("Unit tests") {
-            when {
-                expression { params.UNIT_TESTS == true }
-            }
-            steps {
-                parallel(
-                        "Windows": {
-                            script {
-                                def runner = new Tox(this)
-                                runner.env = "pytest"
-                                runner.windows = true
-                                runner.stash = "Source"
-                                runner.label = "Windows"
-                                runner.post = {
-                                    junit 'reports/junit-*.xml'
-                                }
-                                runner.run()
-                            }
+                        dir("logs"){
+                            deleteDir()
+                            echo "Cleaned out logs directory"
+                            bat "dir"
                         }
-                        // "Windows": {
-                        //     node(label: 'Windows') {
-                        //         deleteDir()
-                        //         unstash "Source"
-                        //         bat "${env.TOX}  -e pytest"
-                        //         junit 'reports/junit-*.xml'
-                        //
-                        //     }
-                        // }
-                        // "Linux": {
-                        //     node(label: "!Windows") {
-                        //         deleteDir()
-                        //         unstash "Source"
-                        //         withEnv(["PATH=${env.PYTHON3}/..:${env.PATH}"]) {
-                        //             sh "${env.TOX}  -e pytest"
-                        //         }
-                        //         junit 'reports/junit-*.xml'
-                        //     }
-                        // }
-                )
-            }
-        }
-        stage("Additional tests") {
-            when {
-                expression { params.ADDITIONAL_TESTS == true }
-            }
 
-            steps {
-                parallel(
-                        "Documentation": {
-                            script {
-                                def runner = new Tox(this)
-                                runner.env = "docs"
-                                runner.windows = true
-                                // runner.windows = false
-                                runner.stash = "Source"
-                                // runner.label = "Linux"
-                                runner.label = "Windows"
-                                runner.post = {
-                                    dir('.tox/dist/html/') {
-                                        stash includes: '**', name: "HTML Documentation", useDefaultExcludes: false
+                        dir("build"){
+                            deleteDir()
+                            echo "Cleaned out build directory"
+                            bat "dir"
+                        }
+                        dir("dist"){
+                            deleteDir()
+                            echo "Cleaned out dist directory"
+                            bat "dir"
+                        }
+
+                        dir("reports"){
+                            deleteDir()
+                            echo "Cleaned out reports directory"
+                            bat "dir"
+                        }
+                    }
+                    post{
+                        failure {
+                            deleteDir()
+                        }
+                    }
+                }
+                stage("Installing required system level dependencies"){
+                    steps{
+                        lock("system_python"){
+                            bat "${tool 'CPython-3.6'} -m pip install --upgrade pip --quiet"
+                        }
+                        tee("logs/pippackages_system_${NODE_NAME}.log") {
+                            bat "${tool 'CPython-3.6'} -m pip list"
+                        }
+                    }
+                    post{
+                        always{
+                            dir("logs"){
+                                script{
+                                    def log_files = findFiles glob: '**/pippackages_system_*.log'
+                                    log_files.each { log_file ->
+                                        echo "Found ${log_file}"
+                                        archiveArtifacts artifacts: "${log_file}"
+                                        bat "del ${log_file}"
                                     }
                                 }
-                                runner.run()
-
                             }
-                        },
-                        "MyPy": {
-                            script {
-                                def runner = new Tox(this)
-                                runner.env = "mypy"
-                                runner.windows = false
-                                runner.stash = "Source"
-                                runner.label = "Linux"
-                                runner.post = {
-                                    junit 'mypy.xml'
-                                }
-                                runner.run()
+                        }
+                        failure {
+                            deleteDir()
+                        }
+                    }
+                }
+                stage("Creating virtualenv for building"){
+                    steps {
+                        bat "${tool 'CPython-3.6'} -m venv venv"
 
+                        script {
+                            try {
+                                bat "call venv\\Scripts\\python.exe -m pip install -U pip"
+                            }
+                            catch (exc) {
+                                bat "${tool 'CPython-3.6'} -m venv venv"
+                                bat "call venv\\Scripts\\python.exe -m pip install -U pip --no-cache-dir"
+                            }
+                        }
+
+                        bat "venv\\Scripts\\pip.exe install -r source\\requirements.txt -r source\\requirements-dev.txt --upgrade-strategy only-if-needed"
+                        bat "venv\\Scripts\\pip.exe install devpi-client lxml pytest-cov --upgrade-strategy only-if-needed"
+
+
+
+                        tee("logs/pippackages_venv_${NODE_NAME}.log") {
+                            bat "venv\\Scripts\\pip.exe list"
+                        }
+                    }
+                    post{
+                        always{
+                            dir("logs"){
+                                script{
+                                    def log_files = findFiles glob: '**/pippackages_venv_*.log'
+                                    log_files.each { log_file ->
+                                        echo "Found ${log_file}"
+                                        archiveArtifacts artifacts: "${log_file}"
+                                        bat "del ${log_file}"
+                                    }
+                                }
+                            }
+                        }
+                        failure {
+                            deleteDir()
+                        }
+                    }
+                }
+                stage("Setting variables used by the rest of the build"){
+                    steps{
+
+                        script {
+                            // Set up the reports directory variable
+                            REPORT_DIR = "${WORKSPACE}\\reports"
+                            dir("source"){
+                                PKG_NAME = bat(returnStdout: true, script: "@${tool 'CPython-3.6'}  setup.py --name").trim()
+                                PKG_VERSION = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --version").trim()
+                            }
+                        }
+
+                        script{
+                            DOC_ZIP_FILENAME = "${PKG_NAME}-${PKG_VERSION}.doc.zip"
+                            junit_filename = "junit-${env.NODE_NAME}-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
+                        }
+
+
+
+
+                        script{
+                            VENV_ROOT = "${WORKSPACE}\\venv\\"
+
+                            VENV_PYTHON = "${WORKSPACE}\\venv\\Scripts\\python.exe"
+                            bat "${VENV_PYTHON} --version"
+
+                            VENV_PIP = "${WORKSPACE}\\venv\\Scripts\\pip.exe"
+                            bat "${VENV_PIP} --version"
+                        }
+
+
+                        bat "venv\\Scripts\\devpi use https://devpi.library.illinois.edu"
+                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                        }
+                        bat "dir"
+                    }
+                    post{
+                        always{
+                            echo """Name                            = ${PKG_NAME}
+    Version                         = ${PKG_VERSION}
+    Report Directory                = ${REPORT_DIR}
+    documentation zip file          = ${DOC_ZIP_FILENAME}
+    Python virtual environment path = ${VENV_ROOT}
+    VirtualEnv Python executable    = ${VENV_PYTHON}
+    VirtualEnv Pip executable       = ${VENV_PIP}
+    junit_filename                  = ${junit_filename}
+    """
+                        }
+                    }
+                }
+            }
+        }
+
+
+//        stage("Cloning and Generating Source") {
+//            steps {
+//                deleteDir()
+//                checkout scm
+//                // virtualenv python_path: "${tool 'Python3.6.3_Win64'}", requirements_file: "requirements.txt", windows: true, "python setup.py build"
+//                bat """${tool 'Python3.6.3_Win64'} -m venv venv
+//                    call venv\\Scripts\\activate.bat
+//                    pip install -r requirements.txt
+//                    pip install -r requirements-dev.txt
+//                    python setup.py build
+//"""
+//                stash includes: '**', name: "Source", useDefaultExcludes: false
+//
+//                stash includes: 'deployment.yml', name: "Deployment"
+//            }
+//
+//        }
+        stage("Building") {
+            stages{
+                stage("Building Python Package"){
+                    steps {
+                        tee("logs/build.log") {
+                            dir("source"){
+                                bat "${WORKSPACE}\\venv\\Scripts\\python.exe setup.py build -b ${WORKSPACE}\\build"
                             }
 
                         }
-                )
+                    }
+                    post{
+                        always{
+                            script{
+                                def log_files = findFiles glob: '**/*.log'
+                                log_files.each { log_file ->
+                                    echo "Found ${log_file}"
+                                    archiveArtifacts artifacts: "${log_file}"
+                                    warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'MSBuild', pattern: "${log_file}"]]
+                                    bat "del ${log_file}"
+                                }
+                            }
+                        }
+                    }
+                }
+                stage("Building Sphinx Documentation"){
+                    when {
+                        equals expected: true, actual: params.BUILD_DOCS
+                    }
+                    steps {
+                        dir("build/docs/html"){
+                            deleteDir()
+                            echo "Cleaned out build/docs/html dirctory"
+
+                        }
+                        script{
+                            // Add a line to config file so auto docs look in the build folder
+                            def sphinx_config_file = 'source/docs/source/conf.py'
+                            def extra_line = "sys.path.insert(0, os.path.abspath('${WORKSPACE}/build/lib'))"
+                            def readContent = readFile "${sphinx_config_file}"
+                            echo "Adding \"${extra_line}\" to ${sphinx_config_file}."
+                            writeFile file: "${sphinx_config_file}", text: readContent+"\r\n${extra_line}\r\n"
+
+
+                        }
+                        echo "Building docs on ${env.NODE_NAME}"
+                        tee("logs/build_sphinx.log") {
+                            dir("build/lib"){
+                                bat "${WORKSPACE}\\venv\\Scripts\\sphinx-build.exe -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees"
+                            }
+                        }
+                    }
+                    post{
+                        always {
+                            dir("logs"){
+                                script{
+                                    def log_files = findFiles glob: '**/*.log'
+                                    log_files.each { log_file ->
+                                        echo "Found ${log_file}"
+                                        archiveArtifacts artifacts: "${log_file}"
+                                        bat "del ${log_file}"
+                                    }
+                                }
+                            }
+                        }
+                        success{
+                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
+                            dir("${WORKSPACE}/dist"){
+                                zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "${DOC_ZIP_FILENAME}"
+                            }
+                        }
+                    }
+
+                }
             }
         }
+//        stage("Unit tests") {
+//            when {
+//                expression { params.UNIT_TESTS == true }
+//            }
+//            steps {
+//                parallel(
+//                        "Windows": {
+//                            script {
+//                                def runner = new Tox(this)
+//                                runner.env = "pytest"
+//                                runner.windows = true
+//                                runner.stash = "Source"
+//                                runner.label = "Windows"
+//                                runner.post = {
+//                                    junit 'reports/junit-*.xml'
+//                                }
+//                                runner.run()
+//                            }
+//                        }
+//                        // "Windows": {
+//                        //     node(label: 'Windows') {
+//                        //         deleteDir()
+//                        //         unstash "Source"
+//                        //         bat "${env.TOX}  -e pytest"
+//                        //         junit 'reports/junit-*.xml'
+//                        //
+//                        //     }
+//                        // }
+//                        // "Linux": {
+//                        //     node(label: "!Windows") {
+//                        //         deleteDir()
+//                        //         unstash "Source"
+//                        //         withEnv(["PATH=${env.PYTHON3}/..:${env.PATH}"]) {
+//                        //             sh "${env.TOX}  -e pytest"
+//                        //         }
+//                        //         junit 'reports/junit-*.xml'
+//                        //     }
+//                        // }
+//                )
+//            }
+//        }
+//        stage("Additional tests") {
+//            when {
+//                expression { params.ADDITIONAL_TESTS == true }
+//            }
+//
+//            steps {
+//                parallel(
+//                        "Documentation": {
+//                            script {
+//                                def runner = new Tox(this)
+//                                runner.env = "docs"
+//                                runner.windows = true
+//                                // runner.windows = false
+//                                runner.stash = "Source"
+//                                // runner.label = "Linux"
+//                                runner.label = "Windows"
+//                                runner.post = {
+//                                    dir('.tox/dist/html/') {
+//                                        stash includes: '**', name: "HTML Documentation", useDefaultExcludes: false
+//                                    }
+//                                }
+//                                runner.run()
+//
+//                            }
+//                        },
+//                        "MyPy": {
+//                            script {
+//                                def runner = new Tox(this)
+//                                runner.env = "mypy"
+//                                runner.windows = false
+//                                runner.stash = "Source"
+//                                runner.label = "Linux"
+//                                runner.post = {
+//                                    junit 'mypy.xml'
+//                                }
+//                                runner.run()
+//
+//                            }
+//
+//                        }
+//                )
+//            }
+//        }
 
         stage("Packaging") {
             when {
