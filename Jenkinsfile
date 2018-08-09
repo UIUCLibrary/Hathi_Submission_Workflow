@@ -411,78 +411,78 @@ pipeline {
 //            }
 //        }
 
-        stage("Packaging") {
-            when {
-                expression { params.PACKAGE == true }
-            }
-
-            steps {
-                parallel(
-                        "Windows Standalone": {
-                            node(label: "Windows&&VS2015&&DevPi") {
-                                deleteDir()
-                                unstash "Source"
-                                bat "call make.bat release"
-//                                bat """${tool 'Python3.6.3_Win64'} -m venv .env
-//                                        call .env/Scripts/activate.bat
-//                                        pip install --upgrade pip setuptools
-//                                        pip install -r requirements.txt
-//                                        call make.bat release
-//                                       IF NOT %ERRORLEVEL% == 0 (
-//                                         echo ABORT: %ERRORLEVEL%
-//                                         exit /b %ERRORLEVEL%
-//                                       )
+//        stage("Packaging") {
+//            when {
+//                expression { params.PACKAGE == true }
+//            }
+//
+//            steps {
+//                parallel(
+//                        "Windows Standalone": {
+//                            node(label: "Windows&&VS2015&&DevPi") {
+//                                deleteDir()
+//                                unstash "Source"
+//                                bat "call make.bat release"
+////                                bat """${tool 'Python3.6.3_Win64'} -m venv .env
+////                                        call .env/Scripts/activate.bat
+////                                        pip install --upgrade pip setuptools
+////                                        pip install -r requirements.txt
+////                                        call make.bat release
+////                                       IF NOT %ERRORLEVEL% == 0 (
+////                                         echo ABORT: %ERRORLEVEL%
+////                                         exit /b %ERRORLEVEL%
+////                                       )
+////                                    """
+//
+//
+//                                dir("dist") {
+//                                    archiveArtifacts artifacts: "*.msi*", fingerprint: true
+//                                    stash includes: "*.msi", name: "msi"
+//                                }
+//                            }
+//                        },
+//                        "Source and Wheel formats": {
+//                            bat """${tool 'Python3.6.3_Win64'} -m venv venv
+//                                    call venv\\Scripts\\activate.bat
+//                                    pip install -r requirements.txt
+//                                    pip install -r requirements-dev.txt
+//                                    python setup.py sdist bdist_wheel
 //                                    """
-
-
-                                dir("dist") {
-                                    archiveArtifacts artifacts: "*.msi*", fingerprint: true
-                                    stash includes: "*.msi", name: "msi"
-                                }
-                            }
-                        }, 
-                        "Source and Wheel formats": {
-                            bat """${tool 'Python3.6.3_Win64'} -m venv venv
-                                    call venv\\Scripts\\activate.bat
-                                    pip install -r requirements.txt
-                                    pip install -r requirements-dev.txt
-                                    python setup.py sdist bdist_wheel
-                                    """
-                        }
-//                         "Windows Wheel": {
-//                             node(label: "Windows") {
-//                                 deleteDir()
-//                                 unstash "Source"
-//                                 bat "${tool 'Python3.6.3_Win64'} setup.py bdist_wheel"
-//                                 archiveArtifacts artifacts: "dist/**", fingerprint: true
-//                             }
-//                         },
-
-//                         "Source Release": {
-//                             node(label: "Windows") {
-//                                 deleteDir()
-//                                 unstash "Source"
-//                                 bat "${tool 'Python3.6.3_Win64'} setup.py sdist"
-//                                 archiveArtifacts artifacts: "dist/**", fingerprint: true
-//                             }
-// //                            node(label: Linux) {
-// //                                createSourceRelease(env.PYTHON3, "Source")
-// //                            }
-
-//                         }
-                )
-            }
-            post {
-              success {
-                  dir("dist"){
-                      unstash "msi"
-                      archiveArtifacts artifacts: "*.whl", fingerprint: true
-                      archiveArtifacts artifacts: "*.tar.gz", fingerprint: true
-                      archiveArtifacts artifacts: "*.msi", fingerprint: true
-                }
-              }
-            }
-        }
+//                        }
+////                         "Windows Wheel": {
+////                             node(label: "Windows") {
+////                                 deleteDir()
+////                                 unstash "Source"
+////                                 bat "${tool 'Python3.6.3_Win64'} setup.py bdist_wheel"
+////                                 archiveArtifacts artifacts: "dist/**", fingerprint: true
+////                             }
+////                         },
+//
+////                         "Source Release": {
+////                             node(label: "Windows") {
+////                                 deleteDir()
+////                                 unstash "Source"
+////                                 bat "${tool 'Python3.6.3_Win64'} setup.py sdist"
+////                                 archiveArtifacts artifacts: "dist/**", fingerprint: true
+////                             }
+//// //                            node(label: Linux) {
+//// //                                createSourceRelease(env.PYTHON3, "Source")
+//// //                            }
+//
+////                         }
+//                )
+//            }
+//            post {
+//              success {
+//                  dir("dist"){
+//                      unstash "msi"
+//                      archiveArtifacts artifacts: "*.whl", fingerprint: true
+//                      archiveArtifacts artifacts: "*.tar.gz", fingerprint: true
+//                      archiveArtifacts artifacts: "*.msi", fingerprint: true
+//                }
+//              }
+//            }
+//        }
 
         // stage("Deploy to SCCM") {
         //     when {
@@ -499,6 +499,67 @@ pipeline {
         //         input("Deploy to production?")
         //     }
         // }
+        stage("Packaging") {
+            when {
+                expression { params.DEPLOY_DEVPI == true || params.RELEASE != "None"}
+            }
+            parallel {
+                stage("Source and Wheel formats"){
+                    steps{
+                        dir("source"){
+                            bat "${WORKSPACE}\\venv\\scripts\\python.exe setup.py sdist -d ${WORKSPACE}\\dist bdist_wheel -d ${WORKSPACE}\\dist"
+                        }
+
+                    }
+                    post{
+                        success{
+                            dir("dist"){
+                                archiveArtifacts artifacts: "*.whl", fingerprint: true
+                                archiveArtifacts artifacts: "*.tar.gz", fingerprint: true
+                            }
+                        }
+                    }
+                }
+                stage("Windows CX_Freeze MSI"){
+                    agent{
+                        node {
+                            label "Windows"
+                        }
+                    }
+                    options {
+                        skipDefaultCheckout true
+                    }
+                    steps{
+                        bat "dir"
+                        deleteDir()
+                        bat "dir"
+                        checkout scm
+                        bat "dir /s / B"
+                        bat "${tool 'CPython-3.6'} -m venv venv"
+                        bat "venv\\Scripts\\python.exe -m pip install -U pip>=18.0"
+                        bat "venv\\Scripts\\pip.exe install -U setuptools"
+                        bat "venv\\Scripts\\pip.exe install -r requirements.txt -r requirements-dev.txt
+                        bat "venv\\Scripts\\python.exe cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir build/msi"
+                        // bat "make freeze"
+
+
+                    }
+                    post{
+                        success{
+                            dir("dist") {
+                                stash includes: "*.msi", name: "msi"
+                                archiveArtifacts artifacts: "*.msi", fingerprint: true
+                            }
+                        }
+                        cleanup{
+                            bat "dir"
+                            deleteDir()
+                            bat "dir"
+                        }
+                    }
+                }
+            }
+        }
         stage("Deploying to Devpi staging") {
             when {
                 expression { params.DEPLOY_DEVPI == true }
