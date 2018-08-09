@@ -1058,19 +1058,47 @@ pipeline {
             }
         }
     }
-    post {
-        always {
+     post {
+        cleanup{
             script {
-                def name = bat(returnStdout: true, script: "@${tool 'Python3.6.3_Win64'} setup.py --name").trim()
-                def version = bat(returnStdout: true, script: "@${tool 'Python3.6.3_Win64'} setup.py --version").trim()
-                withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-                    bat "${tool 'Python3.6.3_Win64'} -m devpi remove -y ${name}==${version}"
+                if(fileExists('source/setup.py')){
+                    dir("source"){
+                        try{
+                            retry(3) {
+                                bat "${WORKSPACE}\\venv\\Scripts\\python.exe setup.py clean --all"
+                            }
+                        } catch (Exception ex) {
+                            echo "Unable to successfully run clean. Purging source directory."
+                            deleteDir()
+                        }
+                    }
+                }
+                bat "dir"
+                if (env.BRANCH_NAME == "master" || env.BRANCH_NAME == "dev"){
+                    withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+                        bat "venv\\Scripts\\devpi.exe login DS_Jenkins --password ${DEVPI_PASSWORD}"
+                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
+                    }
+
+                    def devpi_remove_return_code = bat returnStatus: true, script:"venv\\Scripts\\devpi.exe remove -y ${PKG_NAME}==${PKG_VERSION}"
+                    echo "Devpi remove exited with code ${devpi_remove_return_code}."
                 }
             }
         }
-        success {
-            echo "Cleaning up workspace"
-            deleteDir()
-        }
     }
+//    post {
+//        always {
+//            script {
+//                def name = bat(returnStdout: true, script: "@${tool 'Python3.6.3_Win64'} setup.py --name").trim()
+//                def version = bat(returnStdout: true, script: "@${tool 'Python3.6.3_Win64'} setup.py --version").trim()
+//                withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+//                    bat "${tool 'Python3.6.3_Win64'} -m devpi remove -y ${name}==${version}"
+//                }
+//            }
+//        }
+//        success {
+//            echo "Cleaning up workspace"
+//            deleteDir()
+//        }
+//    }
 }
