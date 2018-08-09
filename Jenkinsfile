@@ -437,7 +437,7 @@ pipeline {
                             try{
                                 tee('reports/flake8.log') {
                                     dir("source"){
-                                        bat "pipenv run flake8 speedwagon --format=pylint"
+                                        bat "${WORKSPACE}\\venv\\Scripts\\flake8.exe speedwagon --format=pylint"
                                     }
                                 }
                             } catch (exc) {
