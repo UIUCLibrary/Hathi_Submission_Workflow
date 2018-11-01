@@ -119,25 +119,16 @@ pipeline {
                 }
                 stage("Installing required system level dependencies"){
                     steps{
-                        lock("system_python"){
+                        lock("system_python_${NODE_NAME}"){
                             bat "${tool 'CPython-3.6'} -m pip install --upgrade pip --quiet"
-                        }
-                        tee("logs/pippackages_system_${NODE_NAME}.log") {
-                            bat "${tool 'CPython-3.6'} -m pip list"
                         }
                     }
                     post{
                         always{
-                            dir("logs"){
-                                script{
-                                    def log_files = findFiles glob: '**/pippackages_system_*.log'
-                                    log_files.each { log_file ->
-                                        echo "Found ${log_file}"
-                                        archiveArtifacts artifacts: "${log_file}"
-                                        bat "del ${log_file}"
-                                    }
-                                }
+                            lock("system_python_${NODE_NAME}"){
+                                bat "${tool 'CPython-3.6'} -m pip list > logs\\pippackages_system_${NODE_NAME}.log"
                             }
+                            archiveArtifacts artifacts: "logs/pippackages_system_${NODE_NAME}.log"
                         }
                         failure {
                             deleteDir()
@@ -145,9 +136,8 @@ pipeline {
                     }
                 }
                 stage("Creating virtualenv for building"){
-                    steps {
+                    steps{
                         bat "${tool 'CPython-3.6'} -m venv venv"
-
                         script {
                             try {
                                 bat "call venv\\Scripts\\python.exe -m pip install -U pip"
@@ -157,31 +147,15 @@ pipeline {
                                 bat "call venv\\Scripts\\python.exe -m pip install -U pip --no-cache-dir"
                             }
                         }
-
-                        bat "venv\\Scripts\\pip.exe install -r source\\requirements.txt -r source\\requirements-dev.txt --upgrade-strategy only-if-needed"
-                        bat "venv\\Scripts\\pip.exe install devpi-client lxml pytest-cov --upgrade-strategy only-if-needed"
-
-
-
-                        tee("logs/pippackages_venv_${NODE_NAME}.log") {
-                            bat "venv\\Scripts\\pip.exe list"
-                        }
+                        bat "venv\\Scripts\\pip.exe install -U setuptools"
+//                        TODO: when detox is fixed, just use the most recent version
+                        bat "venv\\Scripts\\pip.exe install devpi-client pytest pytest-cov lxml -r source\\requirements.txt -r source\\requirements-dev.txt --upgrade-strategy only-if-needed"
+                        bat "venv\\Scripts\\pip.exe install detox==0.13 tox==3.2.1"
                     }
                     post{
-                        always{
-                            dir("logs"){
-                                script{
-                                    def log_files = findFiles glob: '**/pippackages_venv_*.log'
-                                    log_files.each { log_file ->
-                                        echo "Found ${log_file}"
-                                        archiveArtifacts artifacts: "${log_file}"
-                                        bat "del ${log_file}"
-                                    }
-                                }
-                            }
-                        }
-                        failure {
-                            deleteDir()
+                        success{
+                            bat "venv\\Scripts\\pip.exe list > ${WORKSPACE}\\logs\\pippackages_venv_${NODE_NAME}.log"
+                            archiveArtifacts artifacts: "logs/pippackages_venv_${NODE_NAME}.log"
                         }
                     }
                 }
@@ -243,75 +217,44 @@ pipeline {
             stages{
                 stage("Building Python Package"){
                     steps {
-                        tee("logs/build.log") {
-                            dir("source"){
-                                bat "${WORKSPACE}\\venv\\Scripts\\python.exe setup.py build -b ${WORKSPACE}\\build"
-                            }
 
+
+                        dir("source"){
+                            powershell "& ${WORKSPACE}\\venv\\Scripts\\python.exe setup.py build -b ${WORKSPACE}\\build  | tee ${WORKSPACE}\\logs\\build.log"
                         }
+
                     }
                     post{
                         always{
-                            script{
-                                def log_files = findFiles glob: '**/*.log'
-                                log_files.each { log_file ->
-                                    echo "Found ${log_file}"
-                                    archiveArtifacts artifacts: "${log_file}"
-                                    warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'MSBuild', pattern: "${log_file}"]]
-                                    bat "del ${log_file}"
-                                }
-                            }
+                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'Pep8', pattern: 'logs/build.log']]
+                            archiveArtifacts artifacts: "logs/build.log"
+                        }
+                        failure{
+                            echo "Failed to build Python package"
                         }
                     }
                 }
                 stage("Building Sphinx Documentation"){
-                    when {
-                        equals expected: true, actual: params.BUILD_DOCS
-                    }
                     steps {
-                        dir("build/docs/html"){
-                            deleteDir()
-                            echo "Cleaned out build/docs/html dirctory"
-
-                        }
-                        script{
-                            // Add a line to config file so auto docs look in the build folder
-                            def sphinx_config_file = 'source/docs/source/conf.py'
-                            def extra_line = "sys.path.insert(0, os.path.abspath('${WORKSPACE}/build/lib'))"
-                            def readContent = readFile "${sphinx_config_file}"
-                            echo "Adding \"${extra_line}\" to ${sphinx_config_file}."
-                            writeFile file: "${sphinx_config_file}", text: readContent+"\r\n${extra_line}\r\n"
-
-
-                        }
                         echo "Building docs on ${env.NODE_NAME}"
-                        tee("logs/build_sphinx.log") {
-                            dir("build/lib"){
-                                bat "${WORKSPACE}\\venv\\Scripts\\sphinx-build.exe -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees"
-                            }
+                        dir("source"){
+                            powershell "& ${WORKSPACE}\\venv\\Scripts\\python.exe setup.py build_sphinx --build-dir ${WORKSPACE}\\build\\docs | tee ${WORKSPACE}\\logs\\build_sphinx.log"
                         }
                     }
                     post{
                         always {
-                            dir("logs"){
-                                script{
-                                    def log_files = findFiles glob: '**/*.log'
-                                    log_files.each { log_file ->
-                                        echo "Found ${log_file}"
-                                        archiveArtifacts artifacts: "${log_file}"
-                                        bat "del ${log_file}"
-                                    }
-                                }
-                            }
+                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'Pep8', pattern: 'logs/build_sphinx.log']]
+                            archiveArtifacts artifacts: 'logs/build_sphinx.log'
                         }
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
-                            dir("${WORKSPACE}/dist"){
-                                zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "${DOC_ZIP_FILENAME}"
-                            }
+                            zip archive: true, dir: "build/docs/html", glob: '', zipFile: "dist/${DOC_ZIP_FILENAME}"
+                            stash includes: 'build/docs/html/**', name: 'docs'
+                        }
+                        failure{
+                            echo "Failed to build Python package"
                         }
                     }
-
                 }
             }
         }
@@ -356,28 +299,31 @@ pipeline {
                     }
 
                 }
-                stage("MyPy"){
-                    when{
+                stage("Run MyPy Static Analysis") {
+                    when {
                         equals expected: true, actual: params.TEST_RUN_MYPY
                     }
                     steps{
                         script{
                             try{
-                                tee('logs/mypy.log') {
-                                    dir("source"){
-                                        bat "${WORKSPACE}\\venv\\Scripts\\mypy.exe -p hsw --junit-xml=${WORKSPACE}/junit-${env.NODE_NAME}-mypy.xml --html-report ${WORKSPACE}/reports/mypy_html"
-                                    }
+                                dir("source"){
+                                    powershell "& ${WORKSPACE}\\venv\\Scripts\\mypy.exe -p hsw --html-report ${WORKSPACE}\\reports\\mypy\\html | tee ${WORKSPACE}\\logs\\mypy.log"
                                 }
+//                                }
                             } catch (exc) {
                                 echo "MyPy found some warnings"
                             }
+
                         }
                     }
-                    post{
+                    post {
                         always {
-                            junit "junit-${env.NODE_NAME}-mypy.xml"
+                            archiveArtifacts "logs\\mypy.log"
                             warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'MyPy', pattern: 'logs/mypy.log']], unHealthy: ''
-                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy_html', reportFiles: 'index.html', reportName: 'MyPy', reportTitles: ''])
+                            publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy/html/', reportFiles: 'index.html', reportName: 'MyPy HTML Report', reportTitles: ''])
+                        }
+                        cleanup{
+                            cleanWs(patterns: [[pattern: 'logs/mypy.log', type: 'INCLUDE']])
                         }
                     }
                 }
@@ -405,10 +351,8 @@ pipeline {
                     steps{
                         script{
                             try{
-                                tee('reports/flake8.log') {
-                                    dir("source"){
-                                        bat "${WORKSPACE}\\venv\\Scripts\\flake8.exe hsw --format=pylint"
-                                    }
+                                dir("source"){
+                                    bat "${WORKSPACE}\\venv\\Scripts\\flake8.exe hsw --format=pylint --tee --output-file=${WORKSPACE}\\logs\\flake8.log"
                                 }
                             } catch (exc) {
                                 echo "flake8 found some warnings"
@@ -417,18 +361,10 @@ pipeline {
                     }
                     post {
                         always {
-                            script {
-                                dir("reports"){
-
-                                    def linter_logs = findFiles glob: "**/flake8.log"
-                                    linter_logs.each { linter_log ->
-                                        echo "Found ${linter_log}"
-                                        archiveArtifacts artifacts: "${linter_log}"
-                                        warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'PyLint', pattern: "${linter_log}"]], unHealthy: ''
-                                        bat "del ${linter_log}"
-                                    }
-                                }
-                            }
+                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'PyLint', pattern: 'logs/flake8.log']], unHealthy: ''
+                        }
+                        cleanup{
+                            cleanWs(patterns: [[pattern: 'logs/flake8.log', type: 'INCLUDE']])
                         }
                     }
                 }
