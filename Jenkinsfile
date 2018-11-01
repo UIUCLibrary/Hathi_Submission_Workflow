@@ -307,7 +307,7 @@ pipeline {
                         script{
                             try{
                                 dir("source"){
-                                    powershell "& pipenv run mypy -p hsw --html-report ${WORKSPACE}\\reports\\mypy\\html | tee ${WORKSPACE}\\logs\\mypy.log"
+                                    powershell "& ${WORKSPACE}\\venv\\Scripts\\mypy.exe -p hsw --html-report ${WORKSPACE}\\reports\\mypy\\html | tee ${WORKSPACE}\\logs\\mypy.log"
                                 }
 //                                }
                             } catch (exc) {
@@ -352,7 +352,7 @@ pipeline {
                         script{
                             try{
                                 dir("source"){
-                                    bat "pipenv run flake8 hsw --format=pylint --tee --output-file=${WORKSPACE}\\logs\\flake8.log"
+                                    bat "${WORKSPACE}\\venv\\Scripts\\flake8.exe hsw --format=pylint --tee --output-file=${WORKSPACE}\\logs\\flake8.log"
                                 }
                             } catch (exc) {
                                 echo "flake8 found some warnings"
