@@ -364,8 +364,15 @@ pipeline {
                     }
                     post {
                         always {
-                            recordIssues(tools: [[name: 'Flake8', pattern: 'logs/flake8.log', tool: pyLint()]])
-//                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'PyLint', pattern: 'logs/flake8.log']], unHealthy: ''
+                            script{
+                                try{
+                                    recordIssues(tools: [[name: 'Flake8', pattern: 'logs/flake8.log', tool: pyLint()]])
+                                } catch(exc){
+                                    echo "Failed to use recordIssues command. Falling back to warnings command. Reason: ${exc}"
+                                    warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'PyLint', pattern: 'logs/flake8.log']], unHealthy: ''
+                                }
+                            }
+
                         }
                         cleanup{
                             cleanWs(patterns: [[pattern: 'logs/flake8.log', type: 'INCLUDE']])
