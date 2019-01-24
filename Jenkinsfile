@@ -75,11 +75,6 @@ pipeline {
                             checkout scm
                         }
                     }
-                    post{
-                        success{
-                            bat "dir /s /B"
-                        }
-                    }
                 }
 
                 stage("Testing Jira issue"){
@@ -216,7 +211,7 @@ pipeline {
                             echo """Name                            = ${env.PKG_NAME}
     Version                         = ${env.PKG_VERSION}
     Report Directory                = ${REPORT_DIR}
-    documentation zip file          = ${DOC_ZIP_FILENAME}
+    documentation zip file          = ${env.DOC_ZIP_FILENAME}
     Python virtual environment path = ${VENV_ROOT}
     VirtualEnv Python executable    = ${VENV_PYTHON}
     VirtualEnv Pip executable       = ${VENV_PIP}
@@ -266,7 +261,7 @@ pipeline {
                         }
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
-                            zip archive: true, dir: "build/docs/html", glob: '', zipFile: "dist/${DOC_ZIP_FILENAME}"
+                            zip archive: true, dir: "build/docs/html", glob: '', zipFile: "dist/${env.DOC_ZIP_FILENAME}"
                             stash includes: 'build/docs/html/**', name: 'docs'
                         }
                         failure{
@@ -478,7 +473,7 @@ pipeline {
                         bat "venv\\Scripts\\devpi.exe upload --from-dir dist"
                         try {
 //                            bat "venv\\Scripts\\devpi.exe upload --only-docs"
-                            bat "venv\\Scripts\\devpi.exe upload --only-docs ${WORKSPACE}\\dist\\${DOC_ZIP_FILENAME}"
+                            bat "venv\\Scripts\\devpi.exe upload --only-docs ${WORKSPACE}\\dist\\${env.DOC_ZIP_FILENAME}"
                         } catch (exc) {
                             echo "Unable to upload to devpi with docs."
                         }
