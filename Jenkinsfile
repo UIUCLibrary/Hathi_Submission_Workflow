@@ -176,9 +176,6 @@ pipeline {
                     steps {
                         echo "Building docs on ${env.NODE_NAME}"
                         bat "sphinx-build source/docs/source build/docs/html -d build/docs/.doctrees -w ${WORKSPACE}\\logs\\build_sphinx.log"
-//                        dir("source"){
-//                            powershell "& ${WORKSPACE}\\venv\\Scripts\\python.exe setup.py build_sphinx --build-dir ${WORKSPACE}\\build\\docs | tee ${WORKSPACE}\\logs\\build_sphinx.log"
-//                        }
                     }
                     post{
                         always {
@@ -193,11 +190,6 @@ pipeline {
                                 stash includes: 'build/docs/html/**', name: 'DOCS_ARCHIVE'
                             }
                         }
-//                        success{
-//                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
-//                            zip archive: true, dir: "build/docs/html", glob: '', zipFile: "dist/${env.DOC_ZIP_FILENAME}"
-//                            stash includes: "dist/${env.DOC_ZIP_FILENAME},build/docs/html/**", name: 'DOCS_ARCHIVE'
-//                        }
                         failure{
                             echo "Failed to build Python package"
                         }
@@ -211,28 +203,6 @@ pipeline {
                         }
                     }
                 }
-//                stage("Building Sphinx Documentation"){
-//                    steps {
-//                        echo "Building docs on ${env.NODE_NAME}"
-//                        dir("source"){
-//                            powershell "& ${WORKSPACE}\\venv\\Scripts\\python.exe setup.py build_sphinx --build-dir ${WORKSPACE}\\build\\docs | tee ${WORKSPACE}\\logs\\build_sphinx.log"
-//                        }
-//                    }
-//                    post{
-//                        always {
-//                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'Pep8', pattern: 'logs/build_sphinx.log']]
-//                            archiveArtifacts artifacts: 'logs/build_sphinx.log'
-//                        }
-//                        success{
-//                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
-//                            zip archive: true, dir: "build/docs/html", glob: '', zipFile: "dist/${env.DOC_ZIP_FILENAME}"
-//                            stash includes: 'build/docs/html/**', name: 'docs'
-//                        }
-//                        failure{
-//                            echo "Failed to build Python package"
-//                        }
-//                    }
-//                }
             }
         }
         stage("Tests") {
@@ -320,13 +290,6 @@ pipeline {
                                     bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate"
                                 }
                             }
-//                            script{
-//                                try{
-//                                    bat "${WORKSPACE}\\venv\\Scripts\\tox.exe --workdir ${WORKSPACE}\\.tox"
-//                                } catch (exc) {
-//                                    bat "${WORKSPACE}\\venv\\Scripts\\tox.exe --workdir ${WORKSPACE}\\.tox --recreate"
-//                                }
-//                            }
 
                         }
                     }
@@ -538,7 +501,6 @@ stage("Built Distribution: .whl") {
                                     environment {
                                         PATH = "${WORKSPACE}\\venv\\36\\Scripts;${WORKSPACE}\\venv\\37\\Scripts;$PATH"
                                     }
-//
                                     steps {
                                         echo "Testing Whl package in devpi"
                                         devpiTest(
@@ -574,38 +536,25 @@ stage("Built Distribution: .whl") {
 
                 }
                 stage("Deploy to DevPi Production") {
-                            when {
-                                allOf{
-                                    equals expected: true, actual: params.DEPLOY_DEVPI_PRODUCTION
-                                    branch "master"
-                                }
-                            }
-                            steps {
-                                script {
-//                                    unstash "DOCS_ARCHIVE"
-                                    // def name = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --name").trim()
-                                    // def version = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --version").trim()
-                                    input "Release ${env.PKG_NAME} ${env.PKG_VERSION} to DevPi Production?"
-                                    bat "venv\\Scripts\\devpi.exe login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && venv\\Scripts\\devpi.exe use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && venv\\Scripts\\devpi.exe push ${env.PKG_NAME}==${env.PKG_VERSION} production/release"
-//                                    withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-//                                        bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-//                                        bat "venv\\Scripts\\devpi.exe use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
-//                                        bat "venv\\Scripts\\devpi.exe push ${env.PKG_NAME}==${env.PKG_VERSION} production/release"
-//                                    }
-                                }
-                            }
+                    when {
+                        allOf{
+                            equals expected: true, actual: params.DEPLOY_DEVPI_PRODUCTION
+                            branch "master"
                         }
+                    }
+                    steps {
+                        script {
+                            input "Release ${env.PKG_NAME} ${env.PKG_VERSION} to DevPi Production?"
+                            bat "venv\\Scripts\\devpi.exe login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && venv\\Scripts\\devpi.exe use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && venv\\Scripts\\devpi.exe push ${env.PKG_NAME}==${env.PKG_VERSION} production/release"
+                        }
+                    }
+                }
             }
             post {
                 success {
                     echo "it Worked. Pushing file to ${env.BRANCH_NAME} index"
                     script {
                         bat "venv\\Scripts\\devpi.exe use https://devpi.library.illinois.edu/${env.BRANCH_NAME}_staging && devpi login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && venv\\Scripts\\devpi.exe use http://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging && venv\\Scripts\\devpi.exe push ${env.PKG_NAME}==${env.PKG_VERSION} DS_Jenkins/${env.BRANCH_NAME}"
-//                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-//                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-//                            bat "venv\\Scripts\\devpi.exe use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
-//                            bat "venv\\Scripts\\devpi.exe push ${env.PKG_NAME}==${env.PKG_VERSION} ${DEVPI_USERNAME}/${env.BRANCH_NAME}"
-//                        }
                     }
                 }
                 cleanup{
