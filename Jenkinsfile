@@ -1,9 +1,25 @@
 #!groovy
 @Library("ds-utils@v0.2.0") // Uses library from https://github.com/UIUCLibrary/Jenkins_utils
-@Library("devpi") _
 import org.ds.*
 
+@Library(["devpi", "PythonHelpers"]) _
 
+def remove_from_devpi(devpiExecutable, pkgName, pkgVersion, devpiIndex, devpiUsername, devpiPassword){
+    script {
+                try {
+                    bat "${devpiExecutable} login ${devpiUsername} --password ${devpiPassword}"
+                    bat "${devpiExecutable} use ${devpiIndex}"
+                    bat "${devpiExecutable} remove -y ${pkgName}==${pkgVersion}"
+                } catch (Exception ex) {
+                    echo "Failed to remove ${pkgName}==${pkgVersion} from ${devpiIndex}"
+            }
+
+    }
+}
+
+
+
+// TODO: replace global vars with env vars
 
 def PKG_NAME = "unknown"
 def PKG_VERSION = "unknown"
@@ -443,6 +459,7 @@ pipeline {
                 }
             }
         }
+//        TODO: make devpi a seq stage
         stage("Deploying to DevPi staging") {
             when {
                 allOf{
