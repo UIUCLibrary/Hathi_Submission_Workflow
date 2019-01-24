@@ -21,7 +21,6 @@ def remove_from_devpi(devpiExecutable, pkgName, pkgVersion, devpiIndex, devpiUse
 
 // TODO: replace global vars with env vars
 
-def DOC_ZIP_FILENAME = "doc.zip"
 def junit_filename = "junit.xml"
 def REPORT_DIR = ""
 def VENV_ROOT = ""
@@ -182,7 +181,6 @@ pipeline {
                         }
 
                         script{
-                            DOC_ZIP_FILENAME = "${env.PKG_NAME}-${env.PKG_VERSION}.doc.zip"
                             junit_filename = "junit-${env.NODE_NAME}-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
                         }
 
