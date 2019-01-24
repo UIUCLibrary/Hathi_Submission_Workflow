@@ -157,9 +157,7 @@ pipeline {
                             }
                         }
                         bat "venv\\Scripts\\pip.exe install -U setuptools"
-//                        TODO: when detox is fixed, just use the most recent version
-                        bat "venv\\Scripts\\pip.exe install devpi-client pytest pytest-cov lxml -r source\\requirements.txt -r source\\requirements-dev.txt --upgrade-strategy only-if-needed"
-                        bat "venv\\Scripts\\pip.exe install detox==0.13 tox==3.2.1"
+                        bat "venv\\Scripts\\pip.exe install devpi-client pytest tox pytest-cov lxml -r source\\requirements.txt -r source\\requirements-dev.txt --upgrade-strategy only-if-needed"
                     }
                     post{
                         success{
@@ -804,6 +802,7 @@ pipeline {
      post {
         cleanup{
             script {
+
                 if(fileExists('source/setup.py')){
                     dir("source"){
                         try{
@@ -817,6 +816,17 @@ pipeline {
                     }
                 }
                 bat "dir"
+                cleanWs(
+                    deleteDirs: true,
+                    patterns: [
+                        [pattern: 'dist', type: 'INCLUDE'],
+    //                    [pattern: 'build', type: 'INCLUDE'],
+                        [pattern: 'reports', type: 'INCLUDE'],
+                        [pattern: 'logs', type: 'INCLUDE'],
+                        [pattern: 'certs', type: 'INCLUDE'],
+                        [pattern: '*tmp', type: 'INCLUDE'],
+                        ]
+                    )
                 if (env.BRANCH_NAME == "master" || env.BRANCH_NAME == "dev"){
                     withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
                         bat "venv\\Scripts\\devpi.exe login DS_Jenkins --password ${DEVPI_PASSWORD}"
