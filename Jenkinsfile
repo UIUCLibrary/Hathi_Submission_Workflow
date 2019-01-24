@@ -134,13 +134,13 @@ pipeline {
                 stage("Installing required system level dependencies"){
                     steps{
                         lock("system_python_${NODE_NAME}"){
-                            bat "${tool 'CPython-3.6'}\\python -m pip install --upgrade pip --quiet"
+                            bat "python -m pip install --upgrade pip --quiet"
                         }
                     }
                     post{
                         always{
                             lock("system_python_${NODE_NAME}"){
-                                bat "${tool 'CPython-3.6'}\\python -m pip list > logs\\pippackages_system_${NODE_NAME}.log"
+                                bat "python -m pip list > logs\\pippackages_system_${NODE_NAME}.log"
                             }
                             archiveArtifacts artifacts: "logs/pippackages_system_${NODE_NAME}.log"
                         }
@@ -151,13 +151,13 @@ pipeline {
                 }
                 stage("Creating virtualenv for building"){
                     steps{
-                        bat "${tool 'CPython-3.6'}\\python -m venv venv"
+                        bat "python -m venv venv"
                         script {
                             try {
                                 bat "call venv\\Scripts\\python.exe -m pip install -U pip"
                             }
                             catch (exc) {
-                                bat "${tool 'CPython-3.6'}\\python -m venv venv"
+                                bat "python -m venv venv"
                                 bat "call venv\\Scripts\\python.exe -m pip install -U pip --no-cache-dir"
                             }
                         }
@@ -220,6 +220,9 @@ pipeline {
                         }
                         success{
                             echo "Configured ${env.PKG_NAME}, version ${env.PKG_VERSION}, for testing."
+                        }
+                        failure{
+                            deleteDir()
                         }
                     }
                 }
