@@ -167,22 +167,13 @@ pipeline {
                         }
                     }
                 }
-                stage("Setting variables used by the rest of the build"){
-                    steps{
-
-                        bat "venv\\Scripts\\devpi use https://devpi.library.illinois.edu"
-                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-                        }
-                    }
-                    post{
-                        success{
-                            echo "Configured ${env.PKG_NAME}, version ${env.PKG_VERSION}, for testing."
-                        }
-                        failure{
-                            deleteDir()
-                        }
-                    }
+            }
+            post{
+                success{
+                    echo "Configured ${env.PKG_NAME}, version ${env.PKG_VERSION}, for testing."
+                }
+                failure{
+                    deleteDir()
                 }
             }
         }
