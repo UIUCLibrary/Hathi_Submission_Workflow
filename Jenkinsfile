@@ -401,7 +401,7 @@ pipeline {
                 }
             }
         }
-        stage("Deploying to DevPi staging") {
+        stage("Deploying to DevPi Staging") {
             when {
                 allOf{
                     equals expected: true, actual: params.DEPLOY_DEVPI
