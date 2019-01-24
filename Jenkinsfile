@@ -398,9 +398,6 @@ pipeline {
             }
         }
         stage("Packaging") {
-            when {
-                expression { params.DEPLOY_DEVPI == true || params.RELEASE != "None"}
-            }
             parallel {
                 stage("Source and Wheel formats"){
                     steps{
@@ -418,45 +415,6 @@ pipeline {
                         }
                     }
                 }
-//                stage("Windows CX_Freeze MSI"){
-//                    agent{
-//                        node {
-//                            label "Windows"
-//                        }
-//                    }
-//                    options {
-//                        skipDefaultCheckout true
-//                    }
-//                    steps{
-//                        bat "dir"
-//                        deleteDir()
-//                        bat "dir"
-//                        checkout scm
-//                        bat "dir /s / B"
-//                        bat "${tool 'CPython-3.6'}\\python -m venv venv"
-//                        bat "venv\\Scripts\\python.exe -m pip install -U pip>=18.0"
-//                        bat "venv\\Scripts\\pip.exe install -U setuptools"
-//                        bat "venv\\Scripts\\pip.exe install cx_freeze appdirs"
-//                        bat "venv\\Scripts\\pip.exe install -r requirements.txt -r requirements-dev.txt"
-//                        bat "venv\\Scripts\\python.exe cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir build/msi"
-//                        // bat "make freeze"
-//
-//
-//                    }
-//                    post{
-//                        success{
-//                            dir("dist") {
-//                                stash includes: "*.msi", name: "msi"
-//                                archiveArtifacts artifacts: "*.msi", fingerprint: true
-//                            }
-//                        }
-//                        cleanup{
-//                            bat "dir"
-//                            deleteDir()
-//                            bat "dir"
-//                        }
-//                    }
-//                }
                 stage("Windows CX_Freeze MSI"){
                     when{
                         anyOf{
