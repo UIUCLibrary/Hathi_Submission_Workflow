@@ -401,7 +401,7 @@ pipeline {
                 }
             }
         }
-        stage("Deploying to DevPi Staging") {
+        stage("Deploying to DevPi") {
             when {
                 allOf{
                     equals expected: true, actual: params.DEPLOY_DEVPI
@@ -443,25 +443,6 @@ pipeline {
                         }
                     }
                     parallel {
-//                        stage("Source Distribution: .tar.gz") {
-//                            steps {
-//                                devpiTest(
-//                                        devpiExecutable: "venv\\Scripts\\devpi.exe",
-//                                        url: "https://devpi.library.illinois.edu",
-//                                        index: "${env.BRANCH_NAME}_staging",
-//                                        pkgName: "${env.PKG_NAME}",
-//                                        pkgVersion: "${env.PKG_VERSION}",
-//                                        pkgRegex: "tar.gz",
-//                                        detox: true
-//                                    )
-//                            }
-//                            post {
-//                                failure {
-//                                    echo "Tests for .tar.gz source on DevPi failed."
-//                                }
-//                            }
-//
-//                        }
                         stage("Testing Submitted Source Distribution") {
                             environment {
                                 PATH = "${tool 'CPython-3.7'};${tool 'CPython-3.6'};$PATH"
@@ -521,37 +502,6 @@ pipeline {
                             }
 
                         }
-//                        stage("Built Distribution: .whl") {
-//                            agent {
-//                                node {
-//                                    label "Windows && Python3"
-//                                }
-//                            }
-//                            options {
-//                                skipDefaultCheckout()
-//                            }
-//                            steps {
-//                                echo "Testing Whl package in DevPi"
-//                                bat "${tool 'CPython-3.6'}\\python -m venv venv"
-//                                bat "venv\\Scripts\\python.exe -m pip install -U pip"
-//                                bat "venv\\Scripts\\pip.exe install detox==0.13 tox==3.2.1 devpi-client"
-//                                bat "venv\\Scripts\\pip.exe install -U setuptools"
-//                                devpiTest(
-//                                        devpiExecutable: "venv\\Scripts\\devpi.exe",
-//                                        url: "https://devpi.library.illinois.edu",
-//                                        index: "${env.BRANCH_NAME}_staging",
-//                                        pkgName: "${env.PKG_NAME}",
-//                                        pkgVersion: "${env.PKG_VERSION}",
-//                                        pkgRegex: "whl",
-//                                        detox: true
-//                                    )
-//                            }
-//                            post {
-//                                failure {
-//                                    echo "Tests for whl on DevPi failed."
-//                                }
-//                            }
-//                        }
 stage("Built Distribution: .whl") {
                             agent {
                                 node {
@@ -623,7 +573,6 @@ stage("Built Distribution: .whl") {
                             when {
                                 allOf{
                                     equals expected: true, actual: params.DEPLOY_DEVPI_PRODUCTION
-                                    equals expected: true, actual: params.DEPLOY_DEVPI
                                     branch "master"
                                 }
                             }
