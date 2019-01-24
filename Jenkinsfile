@@ -51,6 +51,7 @@ pipeline {
         booleanParam(name: "TEST_RUN_TOX", defaultValue: true, description: "Run Tox Tests")
         booleanParam(name: "TEST_RUN_FLAKE8", defaultValue: true, description: "Run Flake8 static analysis")
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: true, description: "Deploy to DevPi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
+        booleanParam(name: "PACKAGE_CX_FREEZE", defaultValue: true, description: "Create a package with CX_Freeze")
         string(name: 'URL_SUBFOLDER', defaultValue: "DCCMedusaPackager", description: 'The directory that the docs should be saved under')
         booleanParam(name: "DEPLOY_DEVPI_PRODUCTION", defaultValue: false, description: "Deploy to https://devpi.library.illinois.edu/production/release")
         booleanParam(name: "DEPLOY_DOCS", defaultValue: false, description: "Update online documentation")
@@ -296,6 +297,7 @@ pipeline {
                     when{
                         equals expected: true, actual: params.TEST_RUN_TOX
                     }
+//                    TODO: make tox run in parallel
                     steps {
                         dir("source"){
                             script{
@@ -364,28 +366,60 @@ pipeline {
                         }
                     }
                 }
+//                stage("Windows CX_Freeze MSI"){
+//                    agent{
+//                        node {
+//                            label "Windows"
+//                        }
+//                    }
+//                    options {
+//                        skipDefaultCheckout true
+//                    }
+//                    steps{
+//                        bat "dir"
+//                        deleteDir()
+//                        bat "dir"
+//                        checkout scm
+//                        bat "dir /s / B"
+//                        bat "${tool 'CPython-3.6'}\\python -m venv venv"
+//                        bat "venv\\Scripts\\python.exe -m pip install -U pip>=18.0"
+//                        bat "venv\\Scripts\\pip.exe install -U setuptools"
+//                        bat "venv\\Scripts\\pip.exe install cx_freeze appdirs"
+//                        bat "venv\\Scripts\\pip.exe install -r requirements.txt -r requirements-dev.txt"
+//                        bat "venv\\Scripts\\python.exe cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir build/msi"
+//                        // bat "make freeze"
+//
+//
+//                    }
+//                    post{
+//                        success{
+//                            dir("dist") {
+//                                stash includes: "*.msi", name: "msi"
+//                                archiveArtifacts artifacts: "*.msi", fingerprint: true
+//                            }
+//                        }
+//                        cleanup{
+//                            bat "dir"
+//                            deleteDir()
+//                            bat "dir"
+//                        }
+//                    }
+//                }
                 stage("Windows CX_Freeze MSI"){
-                    agent{
-                        node {
-                            label "Windows"
+                    when{
+                        anyOf{
+                            equals expected: true, actual: params.PACKAGE_CX_FREEZE
+                            triggeredBy "TimerTriggerCause"
                         }
                     }
-                    options {
-                        skipDefaultCheckout true
+                    environment {
+                        PATH = "${WORKSPACE}\\venv\\Scripts;${tool 'CPython-3.6'};$PATH"
                     }
                     steps{
-                        bat "dir"
-                        deleteDir()
-                        bat "dir"
-                        checkout scm
-                        bat "dir /s / B"
-                        bat "${tool 'CPython-3.6'}\\python -m venv venv"
-                        bat "venv\\Scripts\\python.exe -m pip install -U pip>=18.0"
-                        bat "venv\\Scripts\\pip.exe install -U setuptools"
-                        bat "venv\\Scripts\\pip.exe install cx_freeze appdirs"
-                        bat "venv\\Scripts\\pip.exe install -r requirements.txt -r requirements-dev.txt"
-                        bat "venv\\Scripts\\python.exe cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir build/msi"
-                        // bat "make freeze"
+                        bat "venv\\Scripts\\pip.exe install -r source\\requirements.txt -r source\\requirements-dev.txt -r source\\requirements-freeze.txt"
+                        dir("source"){
+                            bat "python cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir ../build/msi -d ${WORKSPACE}\\dist"
+                        }
 
 
                     }
@@ -393,13 +427,8 @@ pipeline {
                         success{
                             dir("dist") {
                                 stash includes: "*.msi", name: "msi"
-                                archiveArtifacts artifacts: "*.msi", fingerprint: true
                             }
-                        }
-                        cleanup{
-                            bat "dir"
-                            deleteDir()
-                            bat "dir"
+                            archiveArtifacts artifacts: "dist/*.msi", fingerprint: true
                         }
                     }
                 }
