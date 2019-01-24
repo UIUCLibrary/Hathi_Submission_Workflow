@@ -21,11 +21,6 @@ def remove_from_devpi(devpiExecutable, pkgName, pkgVersion, devpiIndex, devpiUse
 
 // TODO: replace global vars with env vars
 
-def junit_filename = "junit.xml"
-def REPORT_DIR = ""
-def VENV_ROOT = ""
-def VENV_PYTHON = ""
-def VENV_PIP = ""
 
 pipeline {
     agent {
@@ -175,47 +170,12 @@ pipeline {
                 stage("Setting variables used by the rest of the build"){
                     steps{
 
-                        script {
-                            // Set up the reports directory variable
-                            REPORT_DIR = "${WORKSPACE}\\reports"
-                        }
-
-                        script{
-                            junit_filename = "junit-${env.NODE_NAME}-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
-                        }
-
-
-
-
-                        script{
-                            VENV_ROOT = "${WORKSPACE}\\venv\\"
-
-                            VENV_PYTHON = "${WORKSPACE}\\venv\\Scripts\\python.exe"
-                            bat "${VENV_PYTHON} --version"
-
-                            VENV_PIP = "${WORKSPACE}\\venv\\Scripts\\pip.exe"
-                            bat "${VENV_PIP} --version"
-                        }
-
-
                         bat "venv\\Scripts\\devpi use https://devpi.library.illinois.edu"
                         withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
                             bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
                         }
-                        bat "dir"
                     }
                     post{
-                        always{
-                            echo """Name                            = ${env.PKG_NAME}
-    Version                         = ${env.PKG_VERSION}
-    Report Directory                = ${REPORT_DIR}
-    documentation zip file          = ${env.DOC_ZIP_FILENAME}
-    Python virtual environment path = ${VENV_ROOT}
-    VirtualEnv Python executable    = ${VENV_PYTHON}
-    VirtualEnv Pip executable       = ${VENV_PIP}
-    junit_filename                  = ${junit_filename}
-    """
-                        }
                         success{
                             echo "Configured ${env.PKG_NAME}, version ${env.PKG_VERSION}, for testing."
                         }
