@@ -363,7 +363,7 @@ pipeline {
                 stage("Source and Wheel formats"){
                     steps{
                         dir("source"){
-                            bat "${WORKSPACE}\\venv\\scripts\\python.exe setup.py sdist --fromat zip -d ${WORKSPACE}\\dist bdist_wheel -d ${WORKSPACE}\\dist"
+                            bat "${WORKSPACE}\\venv\\scripts\\python.exe setup.py sdist --format zip -d ${WORKSPACE}\\dist bdist_wheel -d ${WORKSPACE}\\dist"
                         }
 
                     }
