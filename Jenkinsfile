@@ -119,7 +119,7 @@ pipeline {
                             }
                         }
                         bat "venv\\Scripts\\pip.exe install -U setuptools"
-                        bat "venv\\Scripts\\pip.exe install devpi-client pytest pytest-cov lxml -r source\\requirements.txt -r source\\requirements-dev.txt --upgrade-strategy only-if-needed"
+                        bat "venv\\Scripts\\pip.exe install pytest pytest-cov lxml -r source\\requirements.txt -r source\\requirements-dev.txt --upgrade-strategy only-if-needed"
                         bat "venv\\Scripts\\pip.exe install \"tox>=3.7\""
 
                     }
@@ -369,10 +369,11 @@ pipeline {
                     }
                     post{
                         success{
-                            dir("dist"){
-                                archiveArtifacts artifacts: "*.whl", fingerprint: true
-                                archiveArtifacts artifacts: "*.tar.gz", fingerprint: true
-                            }
+                            archiveArtifacts artifacts: "dist/*.whl,dist/*.tar.gz", fingerprint: true
+                            stash includes: 'dist/*.whl,dist/*.tar.gz', name: "DIST"
+                        }
+                        cleanup{
+                            cleanWs deleteDirs: true, patterns: [[pattern: 'dist/*.whl,dist/*.zip', type: 'INCLUDE']]
                         }
                     }
                 }
@@ -415,24 +416,24 @@ pipeline {
                     }
                 }
             }
+            options{
+                timestamps()
+            }
+            environment{
+                PATH = "${WORKSPACE}\\venv\\Scripts;${tool 'CPython-3.6'};${tool 'CPython-3.6'}\\Scripts;${PATH}"
+            }
             stages{
+                stage("Install devpi client"){
+                    steps{
+                        bat "pip install devpi-client"
+                    }
+                }
                 stage("Uploading to DevPi staging") {
                     steps {
-                        bat "venv\\Scripts\\devpi.exe use http://devpy.library.illinois.edu"
-                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-                            bat "venv\\Scripts\\devpi.exe use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
-                            script {
-                                bat "venv\\Scripts\\devpi.exe upload --from-dir dist"
-                                try {
-        //                            bat "venv\\Scripts\\devpi.exe upload --only-docs"
-                                    bat "venv\\Scripts\\devpi.exe upload --only-docs ${WORKSPACE}\\dist\\${env.DOC_ZIP_FILENAME}"
-                                } catch (exc) {
-                                    echo "Unable to upload to devpi with docs."
-                                }
-                            }
-                        }
-
+                        unstash "DIST"
+                        unstash "DOCS_ARCHIVE"
+                        bat "pip install devpi-client"
+                        bat "devpi use https://devpi.library.illinois.edu && devpi login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && devpi upload --from-dir dist"
                     }
                 }
 
