@@ -23,9 +23,9 @@ class HathiSelectDestinationWizard(QtWidgets.QWizard):
     def __init__(self, parent=None):
         super().__init__(parent)
         # root = r"\\storage.library.illinois.edu\HathiTrust\HenryTest-PSR_2\Brittle Books\Brittle Books - Good"
-        # root = r"D:\hathigood"
+        root = r"D:\hathigood"
         # root = r"T:\HenryTest-PSR_2\DCC\Lab\Preservation_BAD"
-        root = r"\\storage.library.illinois.edu\\HathiTrust\\HenryTest-PSR_2\\DCC\\Test_PSR-37_20170925"
+        # root = r"\\storage.library.illinois.edu\\HathiTrust\\HenryTest-PSR_2\\DCC\\Test_PSR-37_20170925"
 
         self.data = {
             # "workflow": "BrittleBooks",
