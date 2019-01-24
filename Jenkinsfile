@@ -455,143 +455,116 @@ pipeline {
                     }
                 }
             }
-            steps {
-                bat "venv\\Scripts\\devpi.exe use http://devpy.library.illinois.edu"
-                withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-                    bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-                    bat "venv\\Scripts\\devpi.exe use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
-                    script {
-                        bat "venv\\Scripts\\devpi.exe upload --from-dir dist"
-                        try {
-//                            bat "venv\\Scripts\\devpi.exe upload --only-docs"
-                            bat "venv\\Scripts\\devpi.exe upload --only-docs ${WORKSPACE}\\dist\\${env.DOC_ZIP_FILENAME}"
-                        } catch (exc) {
-                            echo "Unable to upload to devpi with docs."
-                        }
-                    }
-                }
-
-            }
-        }
-        stage("Test Devpi packages") {
-            when {
-                allOf{
-                    equals expected: true, actual: params.DEPLOY_DEVPI
-                    anyOf {
-                        equals expected: "master", actual: env.BRANCH_NAME
-                        equals expected: "dev", actual: env.BRANCH_NAME
-                    }
-                }
-            }
-//            steps {
-            parallel {
-                stage("Source Distribution: .tar.gz") {
+            stages{
+                stage("Uploading to DevPi staging") {
                     steps {
-                        devpiTest(
-                                devpiExecutable: "venv\\Scripts\\devpi.exe",
-                                url: "https://devpi.library.illinois.edu",
-                                index: "${env.BRANCH_NAME}_staging",
-                                pkgName: "${env.PKG_NAME}",
-                                pkgVersion: "${env.PKG_VERSION}",
-                                pkgRegex: "tar.gz",
-                                detox: true
-                            )
+                        bat "venv\\Scripts\\devpi.exe use http://devpy.library.illinois.edu"
+                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                            bat "venv\\Scripts\\devpi.exe use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
+                            script {
+                                bat "venv\\Scripts\\devpi.exe upload --from-dir dist"
+                                try {
+        //                            bat "venv\\Scripts\\devpi.exe upload --only-docs"
+                                    bat "venv\\Scripts\\devpi.exe upload --only-docs ${WORKSPACE}\\dist\\${env.DOC_ZIP_FILENAME}"
+                                } catch (exc) {
+                                    echo "Unable to upload to devpi with docs."
+                                }
+                            }
+                        }
+
                     }
-                    post {
-                        failure {
-                            echo "Tests for .tar.gz source on DevPi failed."
+                }
+
+                stage("Test Devpi packages") {
+                    when {
+                        allOf{
+                            equals expected: true, actual: params.DEPLOY_DEVPI
+                            anyOf {
+                                equals expected: "master", actual: env.BRANCH_NAME
+                                equals expected: "dev", actual: env.BRANCH_NAME
+                            }
+                        }
+                    }
+        //            steps {
+                    parallel {
+                        stage("Source Distribution: .tar.gz") {
+                            steps {
+                                devpiTest(
+                                        devpiExecutable: "venv\\Scripts\\devpi.exe",
+                                        url: "https://devpi.library.illinois.edu",
+                                        index: "${env.BRANCH_NAME}_staging",
+                                        pkgName: "${env.PKG_NAME}",
+                                        pkgVersion: "${env.PKG_VERSION}",
+                                        pkgRegex: "tar.gz",
+                                        detox: true
+                                    )
+                            }
+                            post {
+                                failure {
+                                    echo "Tests for .tar.gz source on DevPi failed."
+                                }
+                            }
+
+                        }
+                        stage("Built Distribution: .whl") {
+                            agent {
+                                node {
+                                    label "Windows && Python3"
+                                }
+                            }
+                            options {
+                                skipDefaultCheckout()
+                            }
+                            steps {
+                                echo "Testing Whl package in DevPi"
+                                bat "${tool 'CPython-3.6'}\\python -m venv venv"
+                                bat "venv\\Scripts\\python.exe -m pip install -U pip"
+                                bat "venv\\Scripts\\pip.exe install detox==0.13 tox==3.2.1 devpi-client"
+                                bat "venv\\Scripts\\pip.exe install -U setuptools"
+                                devpiTest(
+                                        devpiExecutable: "venv\\Scripts\\devpi.exe",
+                                        url: "https://devpi.library.illinois.edu",
+                                        index: "${env.BRANCH_NAME}_staging",
+                                        pkgName: "${env.PKG_NAME}",
+                                        pkgVersion: "${env.PKG_VERSION}",
+                                        pkgRegex: "whl",
+                                        detox: true
+                                    )
+                            }
+                            post {
+                                failure {
+                                    echo "Tests for whl on DevPi failed."
+                                }
+                            }
                         }
                     }
 
+
                 }
-//                stage("Source Distribution: .tar.gz") {
-//                    steps {
-//                        echo "Testing Source tar.gz package in DevPi"
-//                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-//                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-//
-//                        }
-//                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
-//
-//                        script {
-//                            def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${env.PKG_NAME} -s tar.gz  --verbose"
-//                            if(devpi_test_return_code != 0){
-//                                error "Devpi exit code for tar.gz was ${devpi_test_return_code}"
-//                            }
-//                        }
-//                        echo "Finished testing Source Distribution: .tar.gz"
-//                    }
-//                    post {
-//                        failure {
-//                            echo "Tests for .tar.gz source on DevPi failed."
-//                        }
-//                    }
-//
-//                }
-//                stage("Built Distribution: .whl") {
-//                    agent {
-//                        node {
-//                            label "Windows && Python3"
-//                        }
-//                    }
-//                    options {
-//                        skipDefaultCheckout()
-//                    }
-//                    steps {
-//                        echo "Testing Whl package in devpi"
-//                        bat "${tool 'CPython-3.6'} -m venv venv"
-//                        bat "venv\\Scripts\\pip.exe install tox devpi-client"
-//                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-//                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-//                        }
-//                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
-//                        script{
-//                            def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${env.PKG_NAME} -s whl  --verbose"
-//                            if(devpi_test_return_code != 0){
-//                                error "Devpi exit code for whl was ${devpi_test_return_code}"
-//                            }
-//                        }
-//                        echo "Finished testing Built Distribution: .whl"
-//                    }
-//                    post {
-//                        failure {
-//                            echo "Tests for whl on DevPi failed."
-//                        }
-//                    }
-//                }
-            stage("Built Distribution: .whl") {
-                    agent {
-                        node {
-                            label "Windows && Python3"
+                stage("Deploy to DevPi Production") {
+                            when {
+                                allOf{
+                                    equals expected: true, actual: params.DEPLOY_DEVPI_PRODUCTION
+                                    equals expected: true, actual: params.DEPLOY_DEVPI
+                                    branch "master"
+                                }
+                            }
+                            steps {
+                                script {
+                                    unstash "DOCS_ARCHIVE"
+                                    // def name = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --name").trim()
+                                    // def version = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --version").trim()
+                                    input "Release ${env.PKG_NAME} ${env.PKG_VERSION} to DevPi Production?"
+                                    withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+                                        bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                                        bat "venv\\Scripts\\devpi.exe use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
+                                        bat "venv\\Scripts\\devpi.exe push ${env.PKG_NAME}==${env.PKG_VERSION} production/release"
+                                    }
+                                }
+                            }
                         }
-                    }
-                    options {
-                        skipDefaultCheckout()
-                    }
-                    steps {
-                        echo "Testing Whl package in DevPi"
-                        bat "${tool 'CPython-3.6'}\\python -m venv venv"
-                        bat "venv\\Scripts\\python.exe -m pip install -U pip"
-                        bat "venv\\Scripts\\pip.exe install detox==0.13 tox==3.2.1 devpi-client"
-                        bat "venv\\Scripts\\pip.exe install -U setuptools"
-                        devpiTest(
-                                devpiExecutable: "venv\\Scripts\\devpi.exe",
-                                url: "https://devpi.library.illinois.edu",
-                                index: "${env.BRANCH_NAME}_staging",
-                                pkgName: "${env.PKG_NAME}",
-                                pkgVersion: "${env.PKG_VERSION}",
-                                pkgRegex: "whl",
-                                detox: true
-                            )
-                    }
-                    post {
-                        failure {
-                            echo "Tests for whl on DevPi failed."
-                        }
-                    }
-                }
             }
-
             post {
                 success {
                     echo "it Worked. Pushing file to ${env.BRANCH_NAME} index"
@@ -603,53 +576,56 @@ pipeline {
                         }
                     }
                 }
+                cleanup{
+                    remove_from_devpi("venv\\Scripts\\devpi.exe", "${env.PKG_NAME}", "${env.PKG_VERSION}", "/${env.DEVPI_USR}/${env.BRANCH_NAME}_staging", "${env.DEVPI_USR}", "${env.DEVPI_PSW}")
+                }
             }
         }
         stage("Deploy"){
-            parallel {
-                stage("Deploy Online Documentation") {
-                    when{
-                        equals expected: true, actual: params.DEPLOY_DOCS
-                    }
-                    steps{
-                        dir("build/docs/html/"){
-                            input 'Update project documentation?'
-                            sshPublisher(
-                                publishers: [
-                                    sshPublisherDesc(
-                                        configName: 'apache-ns - lib-dccuser-updater',
-                                        sshLabel: [label: 'Linux'],
-                                        transfers: [sshTransfer(excludes: '',
-                                        execCommand: '',
-                                        execTimeout: 120000,
-                                        flatten: false,
-                                        makeEmptyDirs: false,
-                                        noDefaultExcludes: false,
-                                        patternSeparator: '[, ]+',
-                                        remoteDirectory: "${params.DEPLOY_DOCS_URL_SUBFOLDER}",
-                                        remoteDirectorySDF: false,
-                                        removePrefix: '',
-                                        sourceFiles: '**')],
-                                    usePromotionTimestamp: false,
-                                    useWorkspaceInPromotion: false,
-                                    verbose: true
+                    parallel {
+                        stage("Deploy Online Documentation") {
+                            when{
+                                equals expected: true, actual: params.DEPLOY_DOCS
+                            }
+                            steps{
+                                dir("build/docs/html/"){
+                                    input 'Update project documentation?'
+                                    sshPublisher(
+                                        publishers: [
+                                            sshPublisherDesc(
+                                                configName: 'apache-ns - lib-dccuser-updater',
+                                                sshLabel: [label: 'Linux'],
+                                                transfers: [sshTransfer(excludes: '',
+                                                execCommand: '',
+                                                execTimeout: 120000,
+                                                flatten: false,
+                                                makeEmptyDirs: false,
+                                                noDefaultExcludes: false,
+                                                patternSeparator: '[, ]+',
+                                                remoteDirectory: "${params.DEPLOY_DOCS_URL_SUBFOLDER}",
+                                                remoteDirectorySDF: false,
+                                                removePrefix: '',
+                                                sourceFiles: '**')],
+                                            usePromotionTimestamp: false,
+                                            useWorkspaceInPromotion: false,
+                                            verbose: true
+                                            )
+                                        ]
                                     )
-                                ]
-                            )
+                                }
+                            }
                         }
-                    }
-                }
-                stage("Deploy standalone to Hathi tools Beta"){
-                    when {
-                        allOf{
-                            equals expected: true, actual: params.DEPLOY_HATHI_TOOL_BETA
-                            equals expected: true, actual: params.PACKAGE_WINDOWS_STANDALONE
-                        }
-                    }
-                    steps {
-                        unstash "standalone_installer"
-                        input 'Update standalone to //storage.library.illinois.edu/HathiTrust/Tools/beta/?'
-                        cifsPublisher(
+                        stage("Deploy standalone to Hathi tools Beta"){
+                            when {
+                                allOf{
+                                    equals expected: true, actual: params.DEPLOY_HATHI_TOOL_BETA
+                                    equals expected: true, actual: params.PACKAGE_WINDOWS_STANDALONE
+                                }
+                            }
+                            steps {
+                                unstash "standalone_installer"
+                                input 'Update standalone to //storage.library.illinois.edu/HathiTrust/Tools/beta/?'
+                                cifsPublisher(
                                     publishers: [[
                                         configName: 'hathitrust tools',
                                         transfers: [[
@@ -669,105 +645,84 @@ pipeline {
                                         verbose: false
                                         ]]
                                 )
-                    }
-                }
-                stage("Deploy to DevPi Production") {
-                    when {
-                        allOf{
-                            equals expected: true, actual: params.DEPLOY_DEVPI_PRODUCTION
-                            equals expected: true, actual: params.DEPLOY_DEVPI
-                            branch "master"
+                            }
                         }
-                    }
-                    steps {
-                        script {
-                            unstash "DOCS_ARCHIVE"
-                            // def name = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --name").trim()
-                            // def version = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --version").trim()
-                            input "Release ${env.PKG_NAME} ${env.PKG_VERSION} to DevPi Production?"
-                            withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-                                bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-                                bat "venv\\Scripts\\devpi.exe use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
-                                bat "venv\\Scripts\\devpi.exe push ${env.PKG_NAME}==${env.PKG_VERSION} production/release"
+
+                        stage("Deploy Standalone Build to SCCM") {
+                            when {
+                                allOf{
+                                    equals expected: true, actual: params.DEPLOY_SCCM
+                                    equals expected: true, actual: params.PACKAGE_WINDOWS_STANDALONE
+                                    branch "master"
+                                }
+                                // expression { params.RELEASE == "Release_to_devpi_and_sccm"}
+                            }
+
+                            steps {
+                                unstash "msi"
+                                unstash "Deployment"
+                                script{
+                                    // def name = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --name").trim()
+                                    def msi_files = findFiles glob: '*.msi'
+
+                                    def deployment_request = requestDeploy yaml: "deployment.yml", file_name: msi_files[0]
+                                    cifsPublisher(
+                                        publishers: [[
+                                            configName: 'SCCM Staging',
+                                            transfers: [[
+                                                cleanRemote: false,
+                                                excludes: '',
+                                                flatten: false,
+                                                makeEmptyDirs: false,
+                                                noDefaultExcludes: false,
+                                                patternSeparator: '[, ]+',
+                                                remoteDirectory: '',
+                                                remoteDirectorySDF: false,
+                                                removePrefix: '',
+                                                sourceFiles: '*.msi'
+                                                ]],
+                                            usePromotionTimestamp: false,
+                                            useWorkspaceInPromotion: false,
+                                            verbose: false
+                                            ]]
+                                        )
+
+                                    // deployStash("msi", "${env.SCCM_STAGING_FOLDER}/${name}/")
+
+                                    input("Deploy to production?")
+                                    writeFile file: "deployment_request.txt", text: deployment_request
+                                    echo deployment_request
+                                    cifsPublisher(
+                                        publishers: [[
+                                            configName: 'SCCM Upload',
+                                            transfers: [[
+                                                cleanRemote: false,
+                                                excludes: '',
+                                                flatten: false,
+                                                makeEmptyDirs: false,
+                                                noDefaultExcludes: false,
+                                                patternSeparator: '[, ]+',
+                                                remoteDirectory: '',
+                                                remoteDirectorySDF: false,
+                                                removePrefix: '',
+                                                sourceFiles: '*.msi'
+                                                ]],
+                                            usePromotionTimestamp: false,
+                                            useWorkspaceInPromotion: false,
+                                            verbose: false
+                                            ]]
+                                    )
+                                    // deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
+                                }
+                            }
+                            post {
+                                success {
+                                    archiveArtifacts artifacts: "deployment_request.txt"
+                                }
                             }
                         }
                     }
                 }
-                stage("Deploy Standalone Build to SCCM") {
-                    when {
-                        allOf{
-                            equals expected: true, actual: params.DEPLOY_SCCM
-                            equals expected: true, actual: params.PACKAGE_WINDOWS_STANDALONE
-                            branch "master"
-                        }
-                        // expression { params.RELEASE == "Release_to_devpi_and_sccm"}
-                    }
-
-                    steps {
-                        unstash "msi"
-                        unstash "Deployment"
-                        script{
-                            // def name = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --name").trim()
-                            def msi_files = findFiles glob: '*.msi'
-
-                            def deployment_request = requestDeploy yaml: "deployment.yml", file_name: msi_files[0]
-                            cifsPublisher(
-                                publishers: [[
-                                    configName: 'SCCM Staging',
-                                    transfers: [[
-                                        cleanRemote: false,
-                                        excludes: '',
-                                        flatten: false,
-                                        makeEmptyDirs: false,
-                                        noDefaultExcludes: false,
-                                        patternSeparator: '[, ]+',
-                                        remoteDirectory: '',
-                                        remoteDirectorySDF: false,
-                                        removePrefix: '',
-                                        sourceFiles: '*.msi'
-                                        ]],
-                                    usePromotionTimestamp: false,
-                                    useWorkspaceInPromotion: false,
-                                    verbose: false
-                                    ]]
-                                )
-
-                            // deployStash("msi", "${env.SCCM_STAGING_FOLDER}/${name}/")
-
-                            input("Deploy to production?")
-                            writeFile file: "deployment_request.txt", text: deployment_request
-                            echo deployment_request
-                            cifsPublisher(
-                                publishers: [[
-                                    configName: 'SCCM Upload',
-                                    transfers: [[
-                                        cleanRemote: false,
-                                        excludes: '',
-                                        flatten: false,
-                                        makeEmptyDirs: false,
-                                        noDefaultExcludes: false,
-                                        patternSeparator: '[, ]+',
-                                        remoteDirectory: '',
-                                        remoteDirectorySDF: false,
-                                        removePrefix: '',
-                                        sourceFiles: '*.msi'
-                                        ]],
-                                    usePromotionTimestamp: false,
-                                    useWorkspaceInPromotion: false,
-                                    verbose: false
-                                    ]]
-                            )
-                            // deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
-                        }
-                    }
-                    post {
-                        success {
-                            archiveArtifacts artifacts: "deployment_request.txt"
-                        }
-                    }
-                }
-            }
-        }
     }
      post {
         cleanup{
@@ -797,15 +752,15 @@ pipeline {
                         [pattern: '*tmp', type: 'INCLUDE'],
                         ]
                     )
-                if (env.BRANCH_NAME == "master" || env.BRANCH_NAME == "dev"){
-                    withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-                        bat "venv\\Scripts\\devpi.exe login DS_Jenkins --password ${DEVPI_PASSWORD}"
-                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
-                    }
-
-                    def devpi_remove_return_code = bat returnStatus: true, script:"venv\\Scripts\\devpi.exe remove -y ${env.PKG_NAME}==${env.PKG_VERSION}"
-                    echo "Devpi remove exited with code ${devpi_remove_return_code}."
-                }
+//                if (env.BRANCH_NAME == "master" || env.BRANCH_NAME == "dev"){
+//                    withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+//                        bat "venv\\Scripts\\devpi.exe login DS_Jenkins --password ${DEVPI_PASSWORD}"
+//                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
+//                    }
+//
+//                    def devpi_remove_return_code = bat returnStatus: true, script:"venv\\Scripts\\devpi.exe remove -y ${env.PKG_NAME}==${env.PKG_VERSION}"
+//                    echo "Devpi remove exited with code ${devpi_remove_return_code}."
+//                }
             }
         }
     }
