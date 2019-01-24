@@ -201,27 +201,69 @@ pipeline {
                     }
                 }
                 stage("Building Sphinx Documentation"){
+                    environment {
+                        PATH = "${WORKSPACE}\\venv\\Scripts;$PATH"
+                    }
                     steps {
                         echo "Building docs on ${env.NODE_NAME}"
-                        dir("source"){
-                            powershell "& ${WORKSPACE}\\venv\\Scripts\\python.exe setup.py build_sphinx --build-dir ${WORKSPACE}\\build\\docs | tee ${WORKSPACE}\\logs\\build_sphinx.log"
-                        }
+                        bat "sphinx-build source/docs/source build/docs/html -d build/docs/.doctrees -vv -w ${WORKSPACE}\\logs\\build_sphinx.log"
+//                        dir("source"){
+//                            powershell "& ${WORKSPACE}\\venv\\Scripts\\python.exe setup.py build_sphinx --build-dir ${WORKSPACE}\\build\\docs | tee ${WORKSPACE}\\logs\\build_sphinx.log"
+//                        }
                     }
                     post{
                         always {
-                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'Pep8', pattern: 'logs/build_sphinx.log']]
+                            recordIssues(tools: [sphinxBuild(name: 'Sphinx Documentation Build', pattern: 'logs/build_sphinx.log', id: 'sphinx_build')])
                             archiveArtifacts artifacts: 'logs/build_sphinx.log'
                         }
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
-                            zip archive: true, dir: "build/docs/html", glob: '', zipFile: "dist/${env.DOC_ZIP_FILENAME}"
-                            stash includes: 'build/docs/html/**', name: 'docs'
+                            script{
+                                zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "dist/${env.DOC_ZIP_FILENAME}"
+                                // }
+                                stash includes: 'build/docs/html/**', name: 'DOCS_ARCHIVE'
+                            }
                         }
+//                        success{
+//                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
+//                            zip archive: true, dir: "build/docs/html", glob: '', zipFile: "dist/${env.DOC_ZIP_FILENAME}"
+//                            stash includes: "dist/${env.DOC_ZIP_FILENAME},build/docs/html/**", name: 'DOCS_ARCHIVE'
+//                        }
                         failure{
                             echo "Failed to build Python package"
                         }
+                        cleanup{
+                            cleanWs(
+                                deleteDirs: true,
+                                patterns: [
+                                    [pattern: 'build/docs', type: 'INCLUDE'],
+                                    ]
+                                )
+                        }
                     }
                 }
+//                stage("Building Sphinx Documentation"){
+//                    steps {
+//                        echo "Building docs on ${env.NODE_NAME}"
+//                        dir("source"){
+//                            powershell "& ${WORKSPACE}\\venv\\Scripts\\python.exe setup.py build_sphinx --build-dir ${WORKSPACE}\\build\\docs | tee ${WORKSPACE}\\logs\\build_sphinx.log"
+//                        }
+//                    }
+//                    post{
+//                        always {
+//                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'Pep8', pattern: 'logs/build_sphinx.log']]
+//                            archiveArtifacts artifacts: 'logs/build_sphinx.log'
+//                        }
+//                        success{
+//                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
+//                            zip archive: true, dir: "build/docs/html", glob: '', zipFile: "dist/${env.DOC_ZIP_FILENAME}"
+//                            stash includes: 'build/docs/html/**', name: 'docs'
+//                        }
+//                        failure{
+//                            echo "Failed to build Python package"
+//                        }
+//                    }
+//                }
             }
         }
         stage("Tests") {
@@ -671,6 +713,7 @@ pipeline {
                     }
                     steps {
                         script {
+                            unstash "DOCS_ARCHIVE"
                             // def name = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --name").trim()
                             // def version = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --version").trim()
                             input "Release ${env.PKG_NAME} ${env.PKG_VERSION} to DevPi Production?"
