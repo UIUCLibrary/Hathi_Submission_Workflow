@@ -154,7 +154,10 @@ pipeline {
                     }
                     post{
                         always{
-                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'Pep8', pattern: 'logs/build.log']]
+                            recordIssues(tools: [
+                                    pyLint(name: 'Setuptools Build: PyLint', pattern: 'logs/build.log'),
+                                ]
+                            )
                             archiveArtifacts artifacts: "logs/build.log"
                         }
                         failure{
@@ -292,7 +295,7 @@ pipeline {
                     post {
                         always {
                             archiveArtifacts "logs\\mypy.log"
-                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'MyPy', pattern: 'logs/mypy.log']], unHealthy: ''
+                            recordIssues(tools: [myPy(name: 'MyPy', pattern: 'logs/mypy.log')])
                             publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy/html/', reportFiles: 'index.html', reportName: 'MyPy HTML Report', reportTitles: ''])
                         }
                         cleanup{
@@ -332,7 +335,7 @@ pipeline {
                         script{
                             try{
                                 dir("source"){
-                                    bat "${WORKSPACE}\\venv\\Scripts\\flake8.exe hsw --format=pylint --tee --output-file=${WORKSPACE}\\logs\\flake8.log"
+                                    bat "${WORKSPACE}\\venv\\Scripts\\flake8.exe hsw --tee --output-file=${WORKSPACE}\\logs\\flake8.log"
                                 }
                             } catch (exc) {
                                 echo "flake8 found some warnings"
@@ -341,15 +344,7 @@ pipeline {
                     }
                     post {
                         always {
-                            script{
-                                try{
-                                    recordIssues(tools: [[name: 'Flake8', pattern: 'logs/flake8.log', tool: pyLint()]])
-                                } catch(exc){
-                                    echo "Failed to use recordIssues command. Falling back to warnings command. Reason: ${exc}"
-                                    warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'PyLint', pattern: 'logs/flake8.log']], unHealthy: ''
-                                }
-                            }
-
+                            recordIssues(tools: [flake8(name: 'Flake8', pattern: 'logs/flake8.log')])
                         }
                         cleanup{
                             cleanWs(patterns: [[pattern: 'logs/flake8.log', type: 'INCLUDE']])
