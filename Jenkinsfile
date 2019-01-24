@@ -206,7 +206,7 @@ pipeline {
                     }
                     steps {
                         echo "Building docs on ${env.NODE_NAME}"
-                        bat "sphinx-build source/docs/source build/docs/html -d build/docs/.doctrees -vv -w ${WORKSPACE}\\logs\\build_sphinx.log"
+                        bat "sphinx-build source/docs/source build/docs/html -d build/docs/.doctrees -w ${WORKSPACE}\\logs\\build_sphinx.log"
 //                        dir("source"){
 //                            powershell "& ${WORKSPACE}\\venv\\Scripts\\python.exe setup.py build_sphinx --build-dir ${WORKSPACE}\\build\\docs | tee ${WORKSPACE}\\logs\\build_sphinx.log"
 //                        }
