@@ -265,6 +265,9 @@ pipeline {
             }
         }
         stage("Tests") {
+            environment {
+                PATH = "${WORKSPACE}\\venv\\Scripts;$PATH"
+            }
             parallel {
                 stage("PyTest"){
                     when {
@@ -342,11 +345,18 @@ pipeline {
                         dir("source"){
                             script{
                                 try{
-                                    bat "${WORKSPACE}\\venv\\Scripts\\tox.exe --workdir ${WORKSPACE}\\.tox"
+                                    bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox"
                                 } catch (exc) {
-                                    bat "${WORKSPACE}\\venv\\Scripts\\tox.exe --workdir ${WORKSPACE}\\.tox --recreate"
+                                    bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate"
                                 }
                             }
+//                            script{
+//                                try{
+//                                    bat "${WORKSPACE}\\venv\\Scripts\\tox.exe --workdir ${WORKSPACE}\\.tox"
+//                                } catch (exc) {
+//                                    bat "${WORKSPACE}\\venv\\Scripts\\tox.exe --workdir ${WORKSPACE}\\.tox --recreate"
+//                                }
+//                            }
 
                         }
                     }
