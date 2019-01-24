@@ -55,37 +55,41 @@ pipeline {
     stages {
         stage("Configure"){
             stages{
-                stage("Purge all existing data in workspace"){
-                    when{
-                        equals expected: true, actual: params.FRESH_WORKSPACE
-                    }
-                    steps{
-                        deleteDir()
-                        dir("source"){
-                            checkout scm
-                        }
-                    }
-                }
-
-                stage("Testing Jira issue"){
-                    agent any
-                    when {
-                        expression {params.JIRA_ISSUE != ""}
-                    }
-                    steps {
-                        echo "Finding Jira issue $params.JIRA_ISSUE"
-                        script {
-                            // def result = jiraSearch "issue = $params.JIRA_ISSUE"
-                            def result = jiraIssueSelector(issueSelector: [$class: 'JqlIssueSelector', jql: "issue = $params.JIRA_ISSUE"])
-                            if(result.isEmpty()){
-                                echo "Jira issue $params.JIRA_ISSUE not found"
-                                error("Jira issue $params.JIRA_ISSUE not found")
-
-                            } else {
-                                echo "Located ${result}"
+                stage("Initialize Settings"){
+                    parallel{
+                        stage("Purge all existing data in workspace"){
+                            when{
+                                equals expected: true, actual: params.FRESH_WORKSPACE
+                            }
+                            steps{
+                                deleteDir()
+                                dir("source"){
+                                    checkout scm
+                                }
                             }
                         }
 
+                        stage("Testing Jira issue"){
+                            agent any
+                            when {
+                                expression {params.JIRA_ISSUE != ""}
+                            }
+                            steps {
+                                echo "Finding Jira issue $params.JIRA_ISSUE"
+                                script {
+                                    // def result = jiraSearch "issue = $params.JIRA_ISSUE"
+                                    def result = jiraIssueSelector(issueSelector: [$class: 'JqlIssueSelector', jql: "issue = $params.JIRA_ISSUE"])
+                                    if(result.isEmpty()){
+                                        echo "Jira issue $params.JIRA_ISSUE not found"
+                                        error("Jira issue $params.JIRA_ISSUE not found")
+
+                                    } else {
+                                        echo "Located ${result}"
+                                    }
+                                }
+
+                            }
+                        }
                     }
                 }
                 stage("Installing required system level dependencies"){
