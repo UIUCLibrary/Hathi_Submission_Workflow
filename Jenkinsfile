@@ -725,7 +725,7 @@ stage("Built Distribution: .whl") {
                     deleteDirs: true,
                     patterns: [
                         [pattern: 'dist', type: 'INCLUDE'],
-    //                    [pattern: 'build', type: 'INCLUDE'],
+                        [pattern: 'source', type: 'INCLUDE'],
                         [pattern: 'reports', type: 'INCLUDE'],
                         [pattern: 'logs', type: 'INCLUDE'],
                         [pattern: 'certs', type: 'INCLUDE'],
