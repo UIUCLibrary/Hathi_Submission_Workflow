@@ -74,6 +74,9 @@ pipeline {
                             when {
                                 expression {params.JIRA_ISSUE != ""}
                             }
+                            options {
+                                skipDefaultCheckout(true)
+                            }
                             steps {
                                 echo "Finding Jira issue $params.JIRA_ISSUE"
                                 script {
@@ -709,18 +712,18 @@ stage("Built Distribution: .whl") {
         cleanup{
             script {
 
-                if(fileExists('source/setup.py')){
-                    dir("source"){
-                        try{
-                            retry(3) {
-                                bat "${WORKSPACE}\\venv\\Scripts\\python.exe setup.py clean --all"
-                            }
-                        } catch (Exception ex) {
-                            echo "Unable to successfully run clean. Purging source directory."
-                            deleteDir()
-                        }
-                    }
-                }
+//                if(fileExists('source/setup.py')){
+//                    dir("source"){
+//                        try{
+//                            retry(3) {
+//                                bat "${WORKSPACE}\\venv\\Scripts\\python.exe setup.py clean --all"
+//                            }
+//                        } catch (Exception ex) {
+//                            echo "Unable to successfully run clean. Purging source directory."
+//                            deleteDir()
+//                        }
+//                    }
+//                }
                 cleanWs(
                     deleteDirs: true,
                     patterns: [
