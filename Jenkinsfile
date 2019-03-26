@@ -92,6 +92,11 @@ pipeline {
                                 }
 
                             }
+                            post{
+                                cleanup{
+                                    deleteDir()
+                                }
+                            }
                         }
                     }
                 }
@@ -710,7 +715,7 @@ pipeline {
     }
      post {
         cleanup{
-            script {
+//            script {
 
 //                if(fileExists('source/setup.py')){
 //                    dir("source"){
@@ -728,6 +733,7 @@ pipeline {
                     deleteDirs: true,
                     patterns: [
                         [pattern: 'dist', type: 'INCLUDE'],
+                        [pattern: 'build', type: 'INCLUDE'],
                         [pattern: 'source', type: 'INCLUDE'],
                         [pattern: 'reports', type: 'INCLUDE'],
                         [pattern: 'logs', type: 'INCLUDE'],
@@ -735,7 +741,7 @@ pipeline {
                         [pattern: '*tmp', type: 'INCLUDE'],
                         ]
                     )
-            }
+//            }
         }
     }
 }
