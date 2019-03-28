@@ -132,7 +132,7 @@ pipeline {
                         }
                         bat "venv\\Scripts\\pip.exe install -U setuptools"
                         bat "venv\\Scripts\\pip.exe install pytest pytest-cov lxml -r source\\requirements.txt -r source\\requirements-dev.txt --upgrade-strategy only-if-needed"
-                        bat "venv\\Scripts\\pip.exe install \"tox>=3.7\""
+                        bat 'venv\\Scripts\\pip.exe install "tox>=3.7,<3.8"'
 
                     }
                     post{
