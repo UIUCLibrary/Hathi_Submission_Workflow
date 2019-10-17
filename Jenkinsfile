@@ -320,7 +320,13 @@ pipeline {
                     }
                     post {
                         always {
-                            recordIssues(tools: [flake8(name: 'Flake8', pattern: 'logs/flake8.log')])
+                            stash includes: "logs/flake8.log", name: 'FLAKE8_LOGS'
+                            node("Windows"){
+                                checkout scm
+                                unstash "FLAKE8_LOGS"
+                                recordIssues(tools: [flake8(name: 'Flake8', pattern: 'logs/flake8.log')])
+                                deleteDir()
+                            }
                         }
                         cleanup{
                             cleanWs(patterns: [[pattern: 'logs/flake8.log', type: 'INCLUDE']])
