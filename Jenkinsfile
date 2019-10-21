@@ -119,16 +119,6 @@ pipeline {
                         }
                     }
                 }
-                stage("Install Python Dependencies"){
-                    steps{
-                        install_system_python_deps()
-                        bat (
-                            label: "Install Python Virtual Environment Dependencies",
-                            script: "python -m venv venv && venv\\Scripts\\pip.exe install \"tox<3.10\" sphinx pylint && venv\\Scripts\\pip list > logs/pippackages_venv_${env.NODE_NAME}.log"
-                            )
-                        install_pipfile("source")
-                    }
-                }
                 stage("Installing required system level dependencies"){
                     steps{
                         lock("system_python_${NODE_NAME}"){
