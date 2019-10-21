@@ -215,8 +215,8 @@ pipeline {
                 stage("Building Sphinx Documentation"){
                     environment {
                         PATH = "${WORKSPACE}\\venv\\Scripts;$PATH"
-                        PKG_NAME = get_package_name("DIST-INFO", "speedwagon.dist-info/METADATA")
-                        PKG_VERSION = get_package_version("DIST-INFO", "speedwagon.dist-info/METADATA")
+                        PKG_NAME = get_package_name("DIST-INFO", "hsw.dist-info/METADATA")
+                        PKG_VERSION = get_package_version("DIST-INFO", "hsw.dist-info/METADATA")
                     }
                     steps {
                         echo "Building docs on ${env.NODE_NAME}"
