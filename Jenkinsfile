@@ -17,6 +17,28 @@ def remove_from_devpi(devpiExecutable, pkgName, pkgVersion, devpiIndex, devpiUse
     }
 }
 
+def get_package_version(stashName, metadataFile){
+    ws {
+        unstash "${stashName}"
+        script{
+            def props = readProperties interpolate: true, file: "${metadataFile}"
+            deleteDir()
+            return props.Version
+        }
+    }
+}
+
+def get_package_name(stashName, metadataFile){
+    ws {
+        unstash "${stashName}"
+        script{
+            def props = readProperties interpolate: true, file: "${metadataFile}"
+            deleteDir()
+            return props.Name
+        }
+    }
+}
+
 pipeline {
     agent {
         label "Windows && Python3"
@@ -32,9 +54,6 @@ pipeline {
     }
     environment {
         PATH = "${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
-        PKG_NAME = pythonPackageName(toolName: "CPython-3.6")
-        PKG_VERSION = pythonPackageVersion(toolName: "CPython-3.6")
-        DOC_ZIP_FILENAME = "${env.PKG_NAME}-${env.PKG_VERSION}.doc.zip"
         DEVPI = credentials("DS_devpi")
     }
     parameters {
@@ -163,9 +182,6 @@ pipeline {
                 }
             }
             post{
-                success{
-                    echo "Configured ${env.PKG_NAME}, version ${env.PKG_VERSION}, for testing."
-                }
                 failure{
                     deleteDir()
                 }
@@ -199,6 +215,8 @@ pipeline {
                 stage("Building Sphinx Documentation"){
                     environment {
                         PATH = "${WORKSPACE}\\venv\\Scripts;$PATH"
+                        PKG_NAME = get_package_name("DIST-INFO", "speedwagon.dist-info/METADATA")
+                        PKG_VERSION = get_package_version("DIST-INFO", "speedwagon.dist-info/METADATA")
                     }
                     steps {
                         echo "Building docs on ${env.NODE_NAME}"
@@ -212,7 +230,8 @@ pipeline {
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
                             script{
-                                zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "dist/${env.DOC_ZIP_FILENAME}"
+                                def DOC_ZIP_FILENAME = "${env.PKG_NAME}-${env.PKG_VERSION}.doc.zip"
+                                zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "dist/${DOC_ZIP_FILENAME}"
                                 // }
                                 stash includes: 'build/docs/html/**', name: 'DOCS_ARCHIVE'
                             }
@@ -416,6 +435,8 @@ pipeline {
             }
             environment{
                 PATH = "${WORKSPACE}\\venv\\Scripts;${tool 'CPython-3.6'};${tool 'CPython-3.6'}\\Scripts;${PATH}"
+                PKG_NAME = pythonPackageName(toolName: "CPython-3.6")
+                PKG_VERSION = pythonPackageVersion(toolName: "CPython-3.6")
             }
             stages{
                 stage("Install DevPi Client"){
