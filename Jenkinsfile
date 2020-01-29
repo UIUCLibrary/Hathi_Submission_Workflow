@@ -185,99 +185,167 @@ pipeline {
             }
         }
         stage("Tests") {
-            environment {
-                PATH = "${WORKSPACE}\\venv\\Scripts;$PATH"
+            agent {
+                dockerfile {
+                    filename 'CI/docker/python/windows/build/msvc/Dockerfile'
+                    label "windows && docker"
+                }
             }
-            parallel {
-                stage("PyTest"){
+            stages{
+                stage("Setting up Tests"){
                     steps{
-                        bat "${WORKSPACE}\\venv\\Scripts\\pytest.exe --junitxml=../reports/junit-${env.NODE_NAME}-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/coverage/ --cov=hsw" //  --basetemp={envtmpdir}"
+                        bat(
+                            label: "Creating logging and report directories",
+                            script: """
+                                if not exist logs mkdir logs
+                                if not exist reports mkdir reports
+                                if not exist reports\\coverage mkdir reports\\coverage
+                                if not exist reports\\doctests mkdir reports\\doctests
+                                if not exist reports\\mypy\\html mkdir reports\\mypy\\html
+                            """
+                        )
                     }
-                    post {
-                        always{
-                            dir("reports"){
-                                script{
-                                    def report_files = findFiles glob: '**/*.pytest.xml'
-                                    report_files.each { report_file ->
-                                        echo "Found ${report_file}"
-                                        // archiveArtifacts artifacts: "${log_file}"
-                                        junit "${report_file}"
-                                        bat "del ${report_file}"
+                }
+                stage("Run Testing"){
+                    parallel {
+                        stage("PyTest"){
+                            steps{
+                                bat "pytest --junitxml=reports/junit-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:reports/coverage/ --cov=hsw" //  --basetemp={envtmpdir}"
+                            }
+                            post {
+                                always{
+                                    dir("reports"){
+                                        script{
+                                            def report_files = findFiles glob: '**/*.pytest.xml'
+                                            report_files.each { report_file ->
+                                                echo "Found ${report_file}"
+                                                // archiveArtifacts artifacts: "${log_file}"
+                                                junit "${report_file}"
+                                                bat "del ${report_file}"
+                                            }
+                                        }
                                     }
+                                    // junit "reports/junit-${env.NODE_NAME}-pytest.xml"
+                                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/coverage', reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
                                 }
                             }
-                            // junit "reports/junit-${env.NODE_NAME}-pytest.xml"
-                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/coverage', reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
                         }
-                    }
-                }
-                stage("Doc Test"){
-                    steps{
-                        bat "${WORKSPACE}\\venv\\Scripts\\sphinx-build.exe -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -v"
-                    }
-
-                }
-                stage("Run MyPy Static Analysis") {
-                    steps{
-                        script{
-                            try{
-                                powershell "& ${WORKSPACE}\\venv\\Scripts\\mypy.exe -p hsw --html-report ${WORKSPACE}\\reports\\mypy\\html | tee ${WORKSPACE}\\logs\\mypy.log"
-//                                }
-                            } catch (exc) {
-                                echo "MyPy found some warnings"
-                            }
-
-                        }
-                    }
-                    post {
-                        always {
-                            archiveArtifacts "logs\\mypy.log"
-                            recordIssues(tools: [myPy(name: 'MyPy', pattern: 'logs/mypy.log')])
-                            publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy/html/', reportFiles: 'index.html', reportName: 'MyPy HTML Report', reportTitles: ''])
-                        }
-                        cleanup{
-                            cleanWs(patterns: [[pattern: 'logs/mypy.log', type: 'INCLUDE']])
-                        }
-                    }
-                }
-                stage("Run Tox test") {
-                    when{
-                        equals expected: true, actual: params.TEST_RUN_TOX
-                    }
-                    steps {
-                        script{
-                            try{
-                                bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox"
-                            } catch (exc) {
-                                bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate"
+                        stage("Doc Test"){
+                            steps{
+                                bat "python -m sphinx -b doctest docs\\source build\\docs -d build\\docs\\doctrees -v"
                             }
                         }
+                        stage("Run MyPy Static Analysis") {
+                            steps{
+                                catchError(buildResult: "SUCCESS", message: 'MyPy found issues', stageResult: "UNSTABLE") {
+                                    bat(
+                                        label: "Running Mypy",
+                                        script: "mypy -p hsw --html-report reports\\mypy\\html > logs\\mypy.log"
+                                    )
+                                }
+                            }
+                            post {
+                                always {
+                                    archiveArtifacts "logs\\mypy.log"
+                                    recordIssues(tools: [myPy(name: 'MyPy', pattern: 'logs/mypy.log')])
+                                    publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy/html/', reportFiles: 'index.html', reportName: 'MyPy HTML Report', reportTitles: ''])
+                                }
+                                cleanup{
+                                    cleanWs(patterns: [[pattern: 'logs/mypy.log', type: 'INCLUDE']])
+                                }
+                            }
+                        }
+                        stage("Tox") {
+                            when {
+                                equals expected: true, actual: params.TEST_RUN_TOX
+                            }
+                            steps {
+                                bat (
+                                    label: "Run Tox",
+                                    script: "tox --workdir .tox -vv  -e py"
+                                )
+                            }
+                            post {
+                                always {
+                                    archiveArtifacts allowEmptyArchive: true, artifacts: '.tox/py*/log/*.log,.tox/log/*.log,logs/tox_report.json'
+                                    recordIssues(tools: [pep8(id: 'tox', name: 'Tox', pattern: '.tox/py*/log/*.log,.tox/log/*.log')])
+                                }
+                                cleanup{
+                                    cleanWs(
+                                        patterns: [
+                                            [pattern: '.tox/py*/log/*.log', type: 'INCLUDE'],
+                                            [pattern: '.tox/log/*.log', type: 'INCLUDE'],
+                                            [pattern: 'logs/rox_report.json', type: 'INCLUDE']
+                                        ]
+                                    )
+                                }
+                            }
+                        }
+//                         stage("Run Tox test") {
+//                             when{
+//                                 equals expected: true, actual: params.TEST_RUN_TOX
+//                             }
+//                             steps {
+//                                 script{
+//                                     try{
+//                                         bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox"
+//                                     } catch (exc) {
+//                                         bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate"
+//                                     }
+//                                 }
+//                             }
+//                         }
+                        stage("Run Flake8 Static Analysis") {
+                            steps{
+                                catchError(buildResult: "SUCCESS", message: 'Flake8 found issues', stageResult: "UNSTABLE") {
+                                    bat "flake8 hsw --format=pylint --tee --output-file=logs\\flake8.log"
+                                }
+                            }
+                            post {
+                                always {
+                                    recordIssues(tools: [flake8(name: 'Flake8', pattern: 'logs/flake8.log')])
+                                }
+                            }
+                        }
+//                         stage("Run Flake8 Static Analysis") {
+//                             steps{
+//                                 script{
+//                                     try{
+//                                         bat "${WORKSPACE}\\venv\\Scripts\\flake8.exe hsw --tee --output-file=${WORKSPACE}\\logs\\flake8.log"
+//                                     } catch (exc) {
+//                                         echo "flake8 found some warnings"
+//                                     }
+//                                 }
+//                             }
+//                             post {
+//                                 always {
+//                                     stash includes: "logs/flake8.log", name: 'FLAKE8_LOGS'
+//                                     node("Windows"){
+//                                         checkout scm
+//                                         unstash "FLAKE8_LOGS"
+//                                         recordIssues(tools: [flake8(name: 'Flake8', pattern: 'logs/flake8.log')])
+//                                         deleteDir()
+//                                     }
+//                                 }
+//                                 cleanup{
+//                                     cleanWs(patterns: [[pattern: 'logs/flake8.log', type: 'INCLUDE']])
+//                                 }
+//                             }
+//                         }
                     }
                 }
-                stage("Run Flake8 Static Analysis") {
-                    steps{
-                        script{
-                            try{
-                                bat "${WORKSPACE}\\venv\\Scripts\\flake8.exe hsw --tee --output-file=${WORKSPACE}\\logs\\flake8.log"
-                            } catch (exc) {
-                                echo "flake8 found some warnings"
-                            }
-                        }
-                    }
-                    post {
-                        always {
-                            stash includes: "logs/flake8.log", name: 'FLAKE8_LOGS'
-                            node("Windows"){
-                                checkout scm
-                                unstash "FLAKE8_LOGS"
-                                recordIssues(tools: [flake8(name: 'Flake8', pattern: 'logs/flake8.log')])
-                                deleteDir()
-                            }
-                        }
-                        cleanup{
-                            cleanWs(patterns: [[pattern: 'logs/flake8.log', type: 'INCLUDE']])
-                        }
-                    }
+            }
+            post{
+                cleanup{
+                    cleanWs(
+                        deleteDirs: true,
+                        patterns: [
+                            [pattern: "dist/", type: 'INCLUDE'],
+                            [pattern: "reports/", type: 'INCLUDE'],
+                            [pattern: 'build/', type: 'INCLUDE'],
+                            [pattern: 'logs/', type: 'INCLUDE']
+                            ]
+                    )
                 }
             }
         }
