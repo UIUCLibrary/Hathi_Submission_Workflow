@@ -40,19 +40,13 @@ def get_package_name(stashName, metadataFile){
 }
 
 pipeline {
-    agent {
-        label "Windows && Python3"
-    }
+    agent none
     options {
         disableConcurrentBuilds()  //each branch has 1 job running at a time
         timeout(60)  // Timeout after 60 minutes. This shouldn't take this long but it hangs for some reason
         buildDiscarder logRotator(artifactDaysToKeepStr: '30', artifactNumToKeepStr: '30', daysToKeepStr: '100', numToKeepStr: '100')
     }
-    triggers {
-        cron('@daily')
-    }
     environment {
-        PATH = "${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
         DEVPI = credentials("DS_devpi")
     }
     parameters {
@@ -71,16 +65,6 @@ pipeline {
             stages{
                 stage("Initialize Settings"){
                     parallel{
-                        stage("Purge all existing data in workspace"){
-                            when{
-                                equals expected: true, actual: params.FRESH_WORKSPACE
-                            }
-                            steps{
-                                deleteDir()
-                                checkout scm
-                            }
-                        }
-
                         stage("Testing Jira issue"){
                             agent any
                             when {
@@ -672,9 +656,6 @@ pipeline {
                                     verbose: false
                                     ]]
                                 )
-
-                            // deployStash("msi", "${env.SCCM_STAGING_FOLDER}/${name}/")
-
                             input("Deploy to production?")
                             writeFile file: "deployment_request.txt", text: deployment_request
                             echo deployment_request
@@ -698,7 +679,6 @@ pipeline {
                                     verbose: false
                                     ]]
                             )
-                            // deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
                         }
                     }
                     post {
