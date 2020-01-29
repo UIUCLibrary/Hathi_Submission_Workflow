@@ -88,74 +88,36 @@ pipeline {
                                 }
 
                             }
+                        }
+                        stage("Getting Distribution Info"){
+                            agent {
+                                dockerfile {
+                                    filename 'CI/docker/python/windows/build/msvc/Dockerfile'
+                                    label "windows && docker"
+                                }
+                            }
+                            options{
+                                timeout(5)
+                            }
+                            steps{
+                                bat "python setup.py dist_info"
+                            }
                             post{
+                                success{
+                                    stash includes: "hsw.dist-info/**", name: 'DIST-INFO'
+                                    archiveArtifacts artifacts: "hsw.dist-info/**"
+                                }
                                 cleanup{
-                                    deleteDir()
+                                    cleanWs(
+                                        deleteDirs: true,
+                                        patterns: [
+                                            [pattern: "hsw.dist-info/", type: 'INCLUDE'],
+                                            ]
+                                    )
                                 }
                             }
                         }
                     }
-                }
-                stage("Getting Distribution Info"){
-                    environment{
-                        PATH = "${tool 'CPython-3.7'};$PATH"
-                    }
-                    steps{
-                        bat "python setup.py dist_info"
-                    }
-                    post{
-                        success{
-                            stash includes: "hsw.dist-info/**", name: 'DIST-INFO'
-                            archiveArtifacts artifacts: "hsw.dist-info/**"
-                        }
-                    }
-                }
-                stage("Installing required system level dependencies"){
-                    steps{
-                        lock("system_python_${NODE_NAME}"){
-                            bat "python -m pip install --upgrade pip --quiet"
-                        }
-                    }
-                    post{
-                        always{
-                            lock("system_python_${NODE_NAME}"){
-                                bat "(if not exist logs mkdir logs) && python -m pip list > logs\\pippackages_system_${NODE_NAME}.log"
-                            }
-                            archiveArtifacts artifacts: "logs/pippackages_system_${NODE_NAME}.log"
-                        }
-                        failure {
-                            deleteDir()
-                        }
-                    }
-                }
-                stage("Creating virtualenv for building"){
-                    steps{
-                        bat "python -m venv venv"
-                        script {
-                            try {
-                                bat "call venv\\Scripts\\python.exe -m pip install -U pip"
-                            }
-                            catch (exc) {
-                                bat "python -m venv venv"
-                                bat "call venv\\Scripts\\python.exe -m pip install -U pip --no-cache-dir"
-                            }
-                        }
-                        bat "venv\\Scripts\\pip.exe install -U setuptools"
-                        bat "venv\\Scripts\\pip.exe install pytest pytest-cov lxml -r requirements.txt -r requirements-dev.txt --upgrade-strategy only-if-needed"
-                        bat 'venv\\Scripts\\pip.exe install "tox>=3.7,<3.8"'
-
-                    }
-                    post{
-                        success{
-                            bat "venv\\Scripts\\pip.exe list > ${WORKSPACE}\\logs\\pippackages_venv_${NODE_NAME}.log"
-                            archiveArtifacts artifacts: "logs/pippackages_venv_${NODE_NAME}.log"
-                        }
-                    }
-                }
-            }
-            post{
-                failure{
-                    deleteDir()
                 }
             }
         }
