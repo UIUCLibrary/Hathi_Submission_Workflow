@@ -46,7 +46,6 @@ pipeline {
     options {
         disableConcurrentBuilds()  //each branch has 1 job running at a time
         timeout(60)  // Timeout after 60 minutes. This shouldn't take this long but it hangs for some reason
-        checkoutToSubdirectory("source")
         buildDiscarder logRotator(artifactDaysToKeepStr: '30', artifactNumToKeepStr: '30', daysToKeepStr: '100', numToKeepStr: '100')
     }
     triggers {
@@ -78,9 +77,7 @@ pipeline {
                             }
                             steps{
                                 deleteDir()
-                                dir("source"){
-                                    checkout scm
-                                }
+                                checkout scm
                             }
                         }
 
@@ -120,16 +117,12 @@ pipeline {
                         PATH = "${tool 'CPython-3.7'};$PATH"
                     }
                     steps{
-                        dir("source"){
-                            bat "python setup.py dist_info"
-                        }
+                        bat "python setup.py dist_info"
                     }
                     post{
                         success{
-                            dir("source"){
-                                stash includes: "hsw.dist-info/**", name: 'DIST-INFO'
-                                archiveArtifacts artifacts: "hsw.dist-info/**"
-                            }
+                            stash includes: "hsw.dist-info/**", name: 'DIST-INFO'
+                            archiveArtifacts artifacts: "hsw.dist-info/**"
                         }
                     }
                 }
@@ -164,7 +157,7 @@ pipeline {
                             }
                         }
                         bat "venv\\Scripts\\pip.exe install -U setuptools"
-                        bat "venv\\Scripts\\pip.exe install pytest pytest-cov lxml -r source\\requirements.txt -r source\\requirements-dev.txt --upgrade-strategy only-if-needed"
+                        bat "venv\\Scripts\\pip.exe install pytest pytest-cov lxml -r requirements.txt -r requirements-dev.txt --upgrade-strategy only-if-needed"
                         bat 'venv\\Scripts\\pip.exe install "tox>=3.7,<3.8"'
 
                     }
@@ -182,17 +175,11 @@ pipeline {
                 }
             }
         }
-
         stage("Building") {
             stages{
                 stage("Building Python Package"){
                     steps {
-
-
-                        dir("source"){
-                            powershell "& ${WORKSPACE}\\venv\\Scripts\\python.exe setup.py build -b ${WORKSPACE}\\build  | tee ${WORKSPACE}\\logs\\build.log"
-                        }
-
+                        powershell "& ${WORKSPACE}\\venv\\Scripts\\python.exe setup.py build -b ${WORKSPACE}\\build  | tee ${WORKSPACE}\\logs\\build.log"
                     }
                     post{
                         always{
@@ -215,7 +202,7 @@ pipeline {
                     }
                     steps {
                         echo "Building docs on ${env.NODE_NAME}"
-                        bat "sphinx-build source/docs/source build/docs/html -d build/docs/.doctrees -w ${WORKSPACE}\\logs\\build_sphinx.log"
+                        bat "sphinx-build docs/source build/docs/html -d build/docs/.doctrees -w ${WORKSPACE}\\logs\\build_sphinx.log"
                     }
                     post{
                         always {
@@ -253,10 +240,7 @@ pipeline {
             parallel {
                 stage("PyTest"){
                     steps{
-                        dir("source"){
-                            bat "${WORKSPACE}\\venv\\Scripts\\pytest.exe --junitxml=../reports/junit-${env.NODE_NAME}-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/coverage/ --cov=hsw" //  --basetemp={envtmpdir}"
-                        }
-
+                        bat "${WORKSPACE}\\venv\\Scripts\\pytest.exe --junitxml=../reports/junit-${env.NODE_NAME}-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/coverage/ --cov=hsw" //  --basetemp={envtmpdir}"
                     }
                     post {
                         always{
@@ -278,9 +262,7 @@ pipeline {
                 }
                 stage("Doc Test"){
                     steps{
-                        dir("source"){
-                            bat "${WORKSPACE}\\venv\\Scripts\\sphinx-build.exe -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -v"
-                        }
+                        bat "${WORKSPACE}\\venv\\Scripts\\sphinx-build.exe -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -v"
                     }
 
                 }
@@ -288,9 +270,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                dir("source"){
-                                    powershell "& ${WORKSPACE}\\venv\\Scripts\\mypy.exe -p hsw --html-report ${WORKSPACE}\\reports\\mypy\\html | tee ${WORKSPACE}\\logs\\mypy.log"
-                                }
+                                powershell "& ${WORKSPACE}\\venv\\Scripts\\mypy.exe -p hsw --html-report ${WORKSPACE}\\reports\\mypy\\html | tee ${WORKSPACE}\\logs\\mypy.log"
 //                                }
                             } catch (exc) {
                                 echo "MyPy found some warnings"
@@ -314,15 +294,12 @@ pipeline {
                         equals expected: true, actual: params.TEST_RUN_TOX
                     }
                     steps {
-                        dir("source"){
-                            script{
-                                try{
-                                    bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox"
-                                } catch (exc) {
-                                    bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate"
-                                }
+                        script{
+                            try{
+                                bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox"
+                            } catch (exc) {
+                                bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate"
                             }
-
                         }
                     }
                 }
@@ -330,9 +307,7 @@ pipeline {
                     steps{
                         script{
                             try{
-                                dir("source"){
-                                    bat "${WORKSPACE}\\venv\\Scripts\\flake8.exe hsw --tee --output-file=${WORKSPACE}\\logs\\flake8.log"
-                                }
+                                bat "${WORKSPACE}\\venv\\Scripts\\flake8.exe hsw --tee --output-file=${WORKSPACE}\\logs\\flake8.log"
                             } catch (exc) {
                                 echo "flake8 found some warnings"
                             }
@@ -359,10 +334,7 @@ pipeline {
             parallel {
                 stage("Source and Wheel formats"){
                     steps{
-                        dir("source"){
-                            bat "${WORKSPACE}\\venv\\scripts\\python.exe setup.py sdist --format zip -d ${WORKSPACE}\\dist bdist_wheel -d ${WORKSPACE}\\dist"
-                        }
-
+                        bat "${WORKSPACE}\\venv\\scripts\\python.exe setup.py sdist --format zip -d ${WORKSPACE}\\dist bdist_wheel -d ${WORKSPACE}\\dist"
                     }
                     post{
                         success{
@@ -385,12 +357,8 @@ pipeline {
                         PATH = "${WORKSPACE}\\venv\\Scripts;${tool 'CPython-3.6'};$PATH"
                     }
                     steps{
-                        bat "venv\\Scripts\\pip.exe install -r source\\requirements.txt -r source\\requirements-dev.txt cx_freeze appdirs"
-                        dir("source"){
-                            bat "python cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir ../build/msi -d ${WORKSPACE}\\dist"
-                        }
-
-
+                        bat "venv\\Scripts\\pip.exe install -r requirements.txt -r requirements-dev.txt cx_freeze appdirs"
+                        bat "python cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir ../build/msi -d ${WORKSPACE}\\dist"
                     }
                     post{
                         success{
@@ -744,26 +712,11 @@ pipeline {
     }
      post {
         cleanup{
-//            script {
-
-//                if(fileExists('source/setup.py')){
-//                    dir("source"){
-//                        try{
-//                            retry(3) {
-//                                bat "${WORKSPACE}\\venv\\Scripts\\python.exe setup.py clean --all"
-//                            }
-//                        } catch (Exception ex) {
-//                            echo "Unable to successfully run clean. Purging source directory."
-//                            deleteDir()
-//                        }
-//                    }
-//                }
                 cleanWs(
                     deleteDirs: true,
                     patterns: [
                         [pattern: 'dist', type: 'INCLUDE'],
                         [pattern: 'build', type: 'INCLUDE'],
-                        [pattern: 'source', type: 'INCLUDE'],
                         [pattern: 'reports', type: 'INCLUDE'],
                         [pattern: 'logs', type: 'INCLUDE'],
                         [pattern: 'certs', type: 'INCLUDE'],
