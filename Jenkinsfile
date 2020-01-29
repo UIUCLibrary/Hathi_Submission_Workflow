@@ -122,33 +122,25 @@ pipeline {
             }
         }
         stage("Building") {
+            agent {
+                dockerfile {
+                    filename 'CI/docker/python/windows/build/msvc/Dockerfile'
+                    label "windows && docker"
+                }
+            }
             stages{
                 stage("Building Python Package"){
                     steps {
-                        powershell "& ${WORKSPACE}\\venv\\Scripts\\python.exe setup.py build -b ${WORKSPACE}\\build  | tee ${WORKSPACE}\\logs\\build.log"
-                    }
-                    post{
-                        always{
-                            recordIssues(tools: [
-                                    pyLint(name: 'Setuptools Build: PyLint', pattern: 'logs/build.log'),
-                                ]
-                            )
-                            archiveArtifacts artifacts: "logs/build.log"
-                        }
-                        failure{
-                            echo "Failed to build Python package"
-                        }
+                        bat "python setup.py build -b build "
                     }
                 }
                 stage("Building Sphinx Documentation"){
-                    environment {
-                        PATH = "${WORKSPACE}\\venv\\Scripts;$PATH"
-                        PKG_NAME = get_package_name("DIST-INFO", "hsw.dist-info/METADATA")
-                        PKG_VERSION = get_package_version("DIST-INFO", "hsw.dist-info/METADATA")
-                    }
                     steps {
-                        echo "Building docs on ${env.NODE_NAME}"
-                        bat "sphinx-build docs/source build/docs/html -d build/docs/.doctrees -w ${WORKSPACE}\\logs\\build_sphinx.log"
+                        bat "if not exist logs mkdir logs"
+                        bat(
+                            label: "Building docs on ${env.NODE_NAME}",
+                            script:"python -m sphinx docs/source build/docs/html -d build/docs/.doctrees -w logs\\build_sphinx.log"
+                        )
                     }
                     post{
                         always {
@@ -158,9 +150,10 @@ pipeline {
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
                             script{
-                                def DOC_ZIP_FILENAME = "${env.PKG_NAME}-${env.PKG_VERSION}.doc.zip"
-                                zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "dist/${DOC_ZIP_FILENAME}"
-                                // }
+                                unstash "DIST-INFO"
+                                def props = readProperties interpolate: true, file: "hsw.dist-info/METADATA"
+                                def DOC_ZIP_FILENAME = "${props.Name}-${props.Version}.doc.zip"
+                                zip archive: true, dir: "build/docs/html", glob: '', zipFile: "dist/${DOC_ZIP_FILENAME}"
                                 stash includes: 'build/docs/html/**', name: 'DOCS_ARCHIVE'
                             }
                         }
@@ -172,10 +165,22 @@ pipeline {
                                 deleteDirs: true,
                                 patterns: [
                                     [pattern: 'build/docs', type: 'INCLUDE'],
-                                    ]
-                                )
+                                ]
+                            )
                         }
                     }
+                }
+            }
+            post{
+                cleanup{
+                    cleanWs(
+                        deleteDirs: true,
+                        patterns: [
+                            [pattern: 'logs/', type: 'INCLUDE'],
+                            [pattern: "dist/", type: 'INCLUDE'],
+                            [pattern: "build", type: 'INCLUDE']
+                        ]
+                    )
                 }
             }
         }
