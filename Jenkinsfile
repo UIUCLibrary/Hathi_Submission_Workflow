@@ -49,10 +49,13 @@ pipeline {
     environment {
         DEVPI = credentials("DS_devpi")
     }
+    triggers {
+        parameterizedCron '@daily % DEPLOY_DEVPI=true; TEST_RUN_TOX=true; PACKAGE_CX_FREEZE=true'
+    }
     parameters {
         booleanParam(name: "FRESH_WORKSPACE", defaultValue: false, description: "Purge workspace before staring and checking out source")
         string(name: 'JIRA_ISSUE', defaultValue: "", description: 'Jira task to generate about updates.')
-        booleanParam(name: "TEST_RUN_TOX", defaultValue: true, description: "Run Tox Tests")
+        booleanParam(name: "TEST_RUN_TOX", defaultValue: false, description: "Run Tox Tests")
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: false, description: "Deploy to DevPi on http://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
         booleanParam(name: "PACKAGE_CX_FREEZE", defaultValue: true, description: "Create a package with CX_Freeze")
         string(name: 'URL_SUBFOLDER', defaultValue: "DCCMedusaPackager", description: 'The directory that the docs should be saved under')
@@ -371,7 +374,6 @@ pipeline {
                     when{
                         anyOf{
                             equals expected: true, actual: params.PACKAGE_CX_FREEZE
-                            triggeredBy "TimerTriggerCause"
                         }
                     }
                     environment {
