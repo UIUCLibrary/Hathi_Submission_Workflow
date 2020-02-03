@@ -225,7 +225,7 @@ pipeline {
                                             }
                                         }
                                     }
-                                    // junit "reports/junit-${env.NODE_NAME}-pytest.xml"
+                                    junit "reports/junit-pytest.xml"
                                     publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/coverage', reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
                                 }
                             }
