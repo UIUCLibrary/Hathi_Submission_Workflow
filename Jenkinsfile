@@ -386,6 +386,7 @@ pipeline {
                         anyOf{
                             equals expected: true, actual: params.PACKAGE_CX_FREEZE
                         }
+                        beforeAgent true
                     }
                     steps{
                         bat "python cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir build/msi -d dist"
