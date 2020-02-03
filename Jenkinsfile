@@ -40,26 +40,21 @@ def get_package_name(stashName, metadataFile){
 }
 
 pipeline {
-    agent {
-        label "Windows && Python3"
-    }
+    agent none
     options {
         disableConcurrentBuilds()  //each branch has 1 job running at a time
         timeout(60)  // Timeout after 60 minutes. This shouldn't take this long but it hangs for some reason
-        checkoutToSubdirectory("source")
         buildDiscarder logRotator(artifactDaysToKeepStr: '30', artifactNumToKeepStr: '30', daysToKeepStr: '100', numToKeepStr: '100')
     }
-    triggers {
-        cron('@daily')
-    }
     environment {
-        PATH = "${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
         DEVPI = credentials("DS_devpi")
     }
+    triggers {
+        parameterizedCron '@daily % DEPLOY_DEVPI=true; TEST_RUN_TOX=true; PACKAGE_CX_FREEZE=true'
+    }
     parameters {
-        booleanParam(name: "FRESH_WORKSPACE", defaultValue: false, description: "Purge workspace before staring and checking out source")
         string(name: 'JIRA_ISSUE', defaultValue: "", description: 'Jira task to generate about updates.')
-        booleanParam(name: "TEST_RUN_TOX", defaultValue: true, description: "Run Tox Tests")
+        booleanParam(name: "TEST_RUN_TOX", defaultValue: false, description: "Run Tox Tests")
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: false, description: "Deploy to DevPi on http://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
         booleanParam(name: "PACKAGE_CX_FREEZE", defaultValue: true, description: "Create a package with CX_Freeze")
         string(name: 'URL_SUBFOLDER', defaultValue: "DCCMedusaPackager", description: 'The directory that the docs should be saved under')
@@ -72,18 +67,6 @@ pipeline {
             stages{
                 stage("Initialize Settings"){
                     parallel{
-                        stage("Purge all existing data in workspace"){
-                            when{
-                                equals expected: true, actual: params.FRESH_WORKSPACE
-                            }
-                            steps{
-                                deleteDir()
-                                dir("source"){
-                                    checkout scm
-                                }
-                            }
-                        }
-
                         stage("Testing Jira issue"){
                             agent any
                             when {
@@ -107,115 +90,59 @@ pipeline {
                                 }
 
                             }
+                        }
+                        stage("Getting Distribution Info"){
+                            agent {
+                                dockerfile {
+                                    filename 'CI/docker/python/windows/build/msvc/Dockerfile'
+                                    label "windows && docker"
+                                }
+                            }
+                            options{
+                                timeout(5)
+                            }
+                            steps{
+                                bat "python setup.py dist_info"
+                            }
                             post{
+                                success{
+                                    stash includes: "hsw.dist-info/**", name: 'DIST-INFO'
+                                    archiveArtifacts artifacts: "hsw.dist-info/**"
+                                }
                                 cleanup{
-                                    deleteDir()
+                                    cleanWs(
+                                        deleteDirs: true,
+                                        patterns: [
+                                            [pattern: "hsw.dist-info/", type: 'INCLUDE'],
+                                            ]
+                                    )
                                 }
                             }
                         }
                     }
                 }
-                stage("Getting Distribution Info"){
-                    environment{
-                        PATH = "${tool 'CPython-3.7'};$PATH"
-                    }
-                    steps{
-                        dir("source"){
-                            bat "python setup.py dist_info"
-                        }
-                    }
-                    post{
-                        success{
-                            dir("source"){
-                                stash includes: "hsw.dist-info/**", name: 'DIST-INFO'
-                                archiveArtifacts artifacts: "hsw.dist-info/**"
-                            }
-                        }
-                    }
-                }
-                stage("Installing required system level dependencies"){
-                    steps{
-                        lock("system_python_${NODE_NAME}"){
-                            bat "python -m pip install --upgrade pip --quiet"
-                        }
-                    }
-                    post{
-                        always{
-                            lock("system_python_${NODE_NAME}"){
-                                bat "(if not exist logs mkdir logs) && python -m pip list > logs\\pippackages_system_${NODE_NAME}.log"
-                            }
-                            archiveArtifacts artifacts: "logs/pippackages_system_${NODE_NAME}.log"
-                        }
-                        failure {
-                            deleteDir()
-                        }
-                    }
-                }
-                stage("Creating virtualenv for building"){
-                    steps{
-                        bat "python -m venv venv"
-                        script {
-                            try {
-                                bat "call venv\\Scripts\\python.exe -m pip install -U pip"
-                            }
-                            catch (exc) {
-                                bat "python -m venv venv"
-                                bat "call venv\\Scripts\\python.exe -m pip install -U pip --no-cache-dir"
-                            }
-                        }
-                        bat "venv\\Scripts\\pip.exe install -U setuptools"
-                        bat "venv\\Scripts\\pip.exe install pytest pytest-cov lxml -r source\\requirements.txt -r source\\requirements-dev.txt --upgrade-strategy only-if-needed"
-                        bat 'venv\\Scripts\\pip.exe install "tox>=3.7,<3.8"'
-
-                    }
-                    post{
-                        success{
-                            bat "venv\\Scripts\\pip.exe list > ${WORKSPACE}\\logs\\pippackages_venv_${NODE_NAME}.log"
-                            archiveArtifacts artifacts: "logs/pippackages_venv_${NODE_NAME}.log"
-                        }
-                    }
-                }
-            }
-            post{
-                failure{
-                    deleteDir()
-                }
             }
         }
-
         stage("Building") {
+            agent {
+                dockerfile {
+                    filename 'CI/docker/python/windows/build/msvc/Dockerfile'
+                    label "windows && docker"
+                }
+            }
             stages{
                 stage("Building Python Package"){
                     steps {
-
-
-                        dir("source"){
-                            powershell "& ${WORKSPACE}\\venv\\Scripts\\python.exe setup.py build -b ${WORKSPACE}\\build  | tee ${WORKSPACE}\\logs\\build.log"
-                        }
-
-                    }
-                    post{
-                        always{
-                            recordIssues(tools: [
-                                    pyLint(name: 'Setuptools Build: PyLint', pattern: 'logs/build.log'),
-                                ]
-                            )
-                            archiveArtifacts artifacts: "logs/build.log"
-                        }
-                        failure{
-                            echo "Failed to build Python package"
-                        }
+                        bat "python setup.py build -b build "
                     }
                 }
                 stage("Building Sphinx Documentation"){
-                    environment {
-                        PATH = "${WORKSPACE}\\venv\\Scripts;$PATH"
-                        PKG_NAME = get_package_name("DIST-INFO", "hsw.dist-info/METADATA")
-                        PKG_VERSION = get_package_version("DIST-INFO", "hsw.dist-info/METADATA")
-                    }
                     steps {
-                        echo "Building docs on ${env.NODE_NAME}"
-                        bat "sphinx-build source/docs/source build/docs/html -d build/docs/.doctrees -w ${WORKSPACE}\\logs\\build_sphinx.log"
+                        bat "if not exist logs mkdir logs"
+                        bat(
+                            label: "Building docs on ${env.NODE_NAME}",
+                            script:"python -m sphinx docs/source build/docs/html -d build/docs/.doctrees -w logs\\build_sphinx.log"
+                        )
                     }
                     post{
                         always {
@@ -225,9 +152,10 @@ pipeline {
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
                             script{
-                                def DOC_ZIP_FILENAME = "${env.PKG_NAME}-${env.PKG_VERSION}.doc.zip"
-                                zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "dist/${DOC_ZIP_FILENAME}"
-                                // }
+                                unstash "DIST-INFO"
+                                def props = readProperties interpolate: true, file: "hsw.dist-info/METADATA"
+                                def DOC_ZIP_FILENAME = "${props.Name}-${props.Version}.doc.zip"
+                                zip archive: true, dir: "build/docs/html", glob: '', zipFile: "dist/${DOC_ZIP_FILENAME}"
                                 stash includes: 'build/docs/html/**', name: 'DOCS_ARCHIVE'
                             }
                         }
@@ -239,130 +167,203 @@ pipeline {
                                 deleteDirs: true,
                                 patterns: [
                                     [pattern: 'build/docs', type: 'INCLUDE'],
-                                    ]
-                                )
+                                ]
+                            )
                         }
                     }
+                }
+            }
+            post{
+                cleanup{
+                    cleanWs(
+                        deleteDirs: true,
+                        patterns: [
+                            [pattern: 'logs/', type: 'INCLUDE'],
+                            [pattern: "dist/", type: 'INCLUDE'],
+                            [pattern: "build", type: 'INCLUDE']
+                        ]
+                    )
                 }
             }
         }
         stage("Tests") {
-            environment {
-                PATH = "${WORKSPACE}\\venv\\Scripts;$PATH"
+            agent {
+                dockerfile {
+                    filename 'CI/docker/python/windows/build/msvc/Dockerfile'
+                    label "windows && docker"
+                }
             }
-            parallel {
-                stage("PyTest"){
+            stages{
+                stage("Setting up Tests"){
                     steps{
-                        dir("source"){
-                            bat "${WORKSPACE}\\venv\\Scripts\\pytest.exe --junitxml=../reports/junit-${env.NODE_NAME}-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/coverage/ --cov=hsw" //  --basetemp={envtmpdir}"
-                        }
-
+                        bat(
+                            label: "Creating logging and report directories",
+                            script: """
+                                if not exist logs mkdir logs
+                                if not exist reports mkdir reports
+                                if not exist reports\\coverage mkdir reports\\coverage
+                                if not exist reports\\doctests mkdir reports\\doctests
+                                if not exist reports\\mypy\\html mkdir reports\\mypy\\html
+                            """
+                        )
                     }
-                    post {
-                        always{
-                            dir("reports"){
-                                script{
-                                    def report_files = findFiles glob: '**/*.pytest.xml'
-                                    report_files.each { report_file ->
-                                        echo "Found ${report_file}"
-                                        // archiveArtifacts artifacts: "${log_file}"
-                                        junit "${report_file}"
-                                        bat "del ${report_file}"
+                }
+                stage("Run Testing"){
+                    parallel {
+                        stage("PyTest"){
+                            steps{
+                                catchError(buildResult: "UNSTABLE", message: 'PyTest found issues', stageResult: "UNSTABLE") {
+                                    bat "pytest --junitxml=reports/junit-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:reports/coverage/ --cov=hsw" //  --basetemp={envtmpdir}"
+                                }
+                            }
+                            post {
+                                always{
+                                    dir("reports"){
+                                        script{
+                                            def report_files = findFiles glob: '**/*.pytest.xml'
+                                            report_files.each { report_file ->
+                                                echo "Found ${report_file}"
+                                                // archiveArtifacts artifacts: "${log_file}"
+                                                junit "${report_file}"
+                                                bat "del ${report_file}"
+                                            }
+                                        }
                                     }
+                                    junit "reports/junit-pytest.xml"
+                                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/coverage', reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
                                 }
                             }
-                            // junit "reports/junit-${env.NODE_NAME}-pytest.xml"
-                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/coverage', reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
                         }
-                    }
-                }
-                stage("Doc Test"){
-                    steps{
-                        dir("source"){
-                            bat "${WORKSPACE}\\venv\\Scripts\\sphinx-build.exe -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -v"
-                        }
-                    }
-
-                }
-                stage("Run MyPy Static Analysis") {
-                    steps{
-                        script{
-                            try{
-                                dir("source"){
-                                    powershell "& ${WORKSPACE}\\venv\\Scripts\\mypy.exe -p hsw --html-report ${WORKSPACE}\\reports\\mypy\\html | tee ${WORKSPACE}\\logs\\mypy.log"
-                                }
-//                                }
-                            } catch (exc) {
-                                echo "MyPy found some warnings"
+                        stage("Doc Test"){
+                            steps{
+                                bat "python -m sphinx -b doctest docs\\source build\\docs -d build\\docs\\doctrees -v"
                             }
-
                         }
-                    }
-                    post {
-                        always {
-                            archiveArtifacts "logs\\mypy.log"
-                            recordIssues(tools: [myPy(name: 'MyPy', pattern: 'logs/mypy.log')])
-                            publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy/html/', reportFiles: 'index.html', reportName: 'MyPy HTML Report', reportTitles: ''])
-                        }
-                        cleanup{
-                            cleanWs(patterns: [[pattern: 'logs/mypy.log', type: 'INCLUDE']])
-                        }
-                    }
-                }
-                stage("Run Tox test") {
-                    when{
-                        equals expected: true, actual: params.TEST_RUN_TOX
-                    }
-                    steps {
-                        dir("source"){
-                            script{
-                                try{
-                                    bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox"
-                                } catch (exc) {
-                                    bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate"
+                        stage("Run MyPy Static Analysis") {
+                            steps{
+                                catchError(buildResult: "SUCCESS", message: 'MyPy found issues', stageResult: "UNSTABLE") {
+                                    bat(
+                                        label: "Running Mypy",
+                                        script: "mypy -p hsw --html-report reports\\mypy\\html > logs\\mypy.log"
+                                    )
                                 }
                             }
-
+                            post {
+                                always {
+                                    archiveArtifacts "logs\\mypy.log"
+                                    recordIssues(tools: [myPy(name: 'MyPy', pattern: 'logs/mypy.log')])
+                                    publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy/html/', reportFiles: 'index.html', reportName: 'MyPy HTML Report', reportTitles: ''])
+                                }
+                                cleanup{
+                                    cleanWs(patterns: [[pattern: 'logs/mypy.log', type: 'INCLUDE']])
+                                }
+                            }
                         }
+                        stage("Tox") {
+                            when {
+                                equals expected: true, actual: params.TEST_RUN_TOX
+                            }
+                            steps {
+                                bat (
+                                    label: "Run Tox",
+                                    script: "tox --workdir .tox -vv  -e py"
+                                )
+                            }
+                            post {
+                                always {
+                                    archiveArtifacts allowEmptyArchive: true, artifacts: '.tox/py*/log/*.log,.tox/log/*.log,logs/tox_report.json'
+                                    recordIssues(tools: [pep8(id: 'tox', name: 'Tox', pattern: '.tox/py*/log/*.log,.tox/log/*.log')])
+                                }
+                                cleanup{
+                                    cleanWs(
+                                        patterns: [
+                                            [pattern: '.tox/py*/log/*.log', type: 'INCLUDE'],
+                                            [pattern: '.tox/log/*.log', type: 'INCLUDE'],
+                                            [pattern: 'logs/rox_report.json', type: 'INCLUDE']
+                                        ]
+                                    )
+                                }
+                            }
+                        }
+//                         stage("Run Tox test") {
+//                             when{
+//                                 equals expected: true, actual: params.TEST_RUN_TOX
+//                             }
+//                             steps {
+//                                 script{
+//                                     try{
+//                                         bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox"
+//                                     } catch (exc) {
+//                                         bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate"
+//                                     }
+//                                 }
+//                             }
+//                         }
+                        stage("Run Flake8 Static Analysis") {
+                            steps{
+                                catchError(buildResult: "SUCCESS", message: 'Flake8 found issues', stageResult: "UNSTABLE") {
+                                    bat "flake8 hsw --format=pylint --tee --output-file=logs\\flake8.log"
+                                }
+                            }
+                            post {
+                                always {
+                                    recordIssues(tools: [flake8(name: 'Flake8', pattern: 'logs/flake8.log')])
+                                }
+                            }
+                        }
+//                         stage("Run Flake8 Static Analysis") {
+//                             steps{
+//                                 script{
+//                                     try{
+//                                         bat "${WORKSPACE}\\venv\\Scripts\\flake8.exe hsw --tee --output-file=${WORKSPACE}\\logs\\flake8.log"
+//                                     } catch (exc) {
+//                                         echo "flake8 found some warnings"
+//                                     }
+//                                 }
+//                             }
+//                             post {
+//                                 always {
+//                                     stash includes: "logs/flake8.log", name: 'FLAKE8_LOGS'
+//                                     node("Windows"){
+//                                         checkout scm
+//                                         unstash "FLAKE8_LOGS"
+//                                         recordIssues(tools: [flake8(name: 'Flake8', pattern: 'logs/flake8.log')])
+//                                         deleteDir()
+//                                     }
+//                                 }
+//                                 cleanup{
+//                                     cleanWs(patterns: [[pattern: 'logs/flake8.log', type: 'INCLUDE']])
+//                                 }
+//                             }
+//                         }
                     }
                 }
-                stage("Run Flake8 Static Analysis") {
-                    steps{
-                        script{
-                            try{
-                                dir("source"){
-                                    bat "${WORKSPACE}\\venv\\Scripts\\flake8.exe hsw --tee --output-file=${WORKSPACE}\\logs\\flake8.log"
-                                }
-                            } catch (exc) {
-                                echo "flake8 found some warnings"
-                            }
-                        }
-                    }
-                    post {
-                        always {
-                            stash includes: "logs/flake8.log", name: 'FLAKE8_LOGS'
-                            node("Windows"){
-                                checkout scm
-                                unstash "FLAKE8_LOGS"
-                                recordIssues(tools: [flake8(name: 'Flake8', pattern: 'logs/flake8.log')])
-                                deleteDir()
-                            }
-                        }
-                        cleanup{
-                            cleanWs(patterns: [[pattern: 'logs/flake8.log', type: 'INCLUDE']])
-                        }
-                    }
+            }
+            post{
+                cleanup{
+                    cleanWs(
+                        deleteDirs: true,
+                        patterns: [
+                            [pattern: "dist/", type: 'INCLUDE'],
+                            [pattern: "reports/", type: 'INCLUDE'],
+                            [pattern: 'build/', type: 'INCLUDE'],
+                            [pattern: 'logs/', type: 'INCLUDE']
+                            ]
+                    )
                 }
             }
         }
         stage("Packaging") {
             parallel {
                 stage("Source and Wheel formats"){
-                    steps{
-                        dir("source"){
-                            bat "${WORKSPACE}\\venv\\scripts\\python.exe setup.py sdist --format zip -d ${WORKSPACE}\\dist bdist_wheel -d ${WORKSPACE}\\dist"
+                    agent {
+                        dockerfile {
+                            filename 'CI/docker/python/windows/build/msvc/Dockerfile'
+                            label "windows && docker"
                         }
-
+                    }
+                    steps{
+                        bat "python setup.py sdist --format zip -d dist bdist_wheel -d dist"
                     }
                     post{
                         success{
@@ -375,22 +376,20 @@ pipeline {
                     }
                 }
                 stage("Windows CX_Freeze MSI"){
+                    agent {
+                        dockerfile {
+                            filename 'CI/docker/python/windows/build/msvc/Dockerfile'
+                            label "windows && docker"
+                        }
+                    }
                     when{
                         anyOf{
                             equals expected: true, actual: params.PACKAGE_CX_FREEZE
-                            triggeredBy "TimerTriggerCause"
                         }
-                    }
-                    environment {
-                        PATH = "${WORKSPACE}\\venv\\Scripts;${tool 'CPython-3.6'};$PATH"
+                        beforeAgent true
                     }
                     steps{
-                        bat "venv\\Scripts\\pip.exe install -r source\\requirements.txt -r source\\requirements-dev.txt cx_freeze appdirs"
-                        dir("source"){
-                            bat "python cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir ../build/msi -d ${WORKSPACE}\\dist"
-                        }
-
-
+                        bat "python cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir build/msi -d dist"
                     }
                     post{
                         success{
@@ -704,9 +703,6 @@ pipeline {
                                     verbose: false
                                     ]]
                                 )
-
-                            // deployStash("msi", "${env.SCCM_STAGING_FOLDER}/${name}/")
-
                             input("Deploy to production?")
                             writeFile file: "deployment_request.txt", text: deployment_request
                             echo deployment_request
@@ -730,7 +726,6 @@ pipeline {
                                     verbose: false
                                     ]]
                             )
-                            // deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
                         }
                     }
                     post {
@@ -742,35 +737,20 @@ pipeline {
             }
         }
     }
-     post {
-        cleanup{
-//            script {
-
-//                if(fileExists('source/setup.py')){
-//                    dir("source"){
-//                        try{
-//                            retry(3) {
-//                                bat "${WORKSPACE}\\venv\\Scripts\\python.exe setup.py clean --all"
-//                            }
-//                        } catch (Exception ex) {
-//                            echo "Unable to successfully run clean. Purging source directory."
-//                            deleteDir()
-//                        }
-//                    }
-//                }
-                cleanWs(
-                    deleteDirs: true,
-                    patterns: [
-                        [pattern: 'dist', type: 'INCLUDE'],
-                        [pattern: 'build', type: 'INCLUDE'],
-                        [pattern: 'source', type: 'INCLUDE'],
-                        [pattern: 'reports', type: 'INCLUDE'],
-                        [pattern: 'logs', type: 'INCLUDE'],
-                        [pattern: 'certs', type: 'INCLUDE'],
-                        [pattern: '*tmp', type: 'INCLUDE'],
-                        ]
-                    )
-//            }
-        }
-    }
+//      post {
+//         cleanup{
+//                 cleanWs(
+//                     deleteDirs: true,
+//                     patterns: [
+//                         [pattern: 'dist', type: 'INCLUDE'],
+//                         [pattern: 'build', type: 'INCLUDE'],
+//                         [pattern: 'reports', type: 'INCLUDE'],
+//                         [pattern: 'logs', type: 'INCLUDE'],
+//                         [pattern: 'certs', type: 'INCLUDE'],
+//                         [pattern: '*tmp', type: 'INCLUDE'],
+//                         ]
+//                     )
+// //            }
+//         }
+//     }
 }
