@@ -371,17 +371,19 @@ pipeline {
                     }
                 }
                 stage("Windows CX_Freeze MSI"){
+                    agent {
+                        dockerfile {
+                            filename 'CI/docker/python/windows/build/msvc/Dockerfile'
+                            label "windows && docker"
+                        }
+                    }
                     when{
                         anyOf{
                             equals expected: true, actual: params.PACKAGE_CX_FREEZE
                         }
                     }
-                    environment {
-                        PATH = "${WORKSPACE}\\venv\\Scripts;${tool 'CPython-3.6'};$PATH"
-                    }
                     steps{
-                        bat "venv\\Scripts\\pip.exe install -r requirements.txt -r requirements-dev.txt cx_freeze appdirs"
-                        bat "python cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir ../build/msi -d ${WORKSPACE}\\dist"
+                        bat "python cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir build/msi -d dist"
                     }
                     post{
                         success{
