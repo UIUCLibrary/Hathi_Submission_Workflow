@@ -210,7 +210,9 @@ pipeline {
                     parallel {
                         stage("PyTest"){
                             steps{
-                                bat "pytest --junitxml=reports/junit-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:reports/coverage/ --cov=hsw" //  --basetemp={envtmpdir}"
+                                catchError(buildResult: "UNSTABLE", message: 'PyTest found issues', stageResult: "UNSTABLE") {
+                                    bat "pytest --junitxml=reports/junit-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:reports/coverage/ --cov=hsw" //  --basetemp={envtmpdir}"
+                                }
                             }
                             post {
                                 always{
