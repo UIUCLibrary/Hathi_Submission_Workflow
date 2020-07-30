@@ -49,10 +49,6 @@ pipeline {
     environment {
         DEVPI = credentials("DS_devpi")
     }
-    // Turn this back on if developing becomes active again
-    //triggers {
-    //    parameterizedCron '@daily % DEPLOY_DEVPI=true; TEST_RUN_TOX=true; PACKAGE_CX_FREEZE=true'
-    //}
     parameters {
         string(name: 'JIRA_ISSUE', defaultValue: "", description: 'Jira task to generate about updates.')
         booleanParam(name: "TEST_RUN_TOX", defaultValue: false, description: "Run Tox Tests")
